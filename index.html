@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NEXUS AI</title>
+<meta name="description" content="NEXUS AI brings your videos, documents and business knowledge into one AI workspace with source-grounded answers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+<!--
+  NEXUS AI — complete client frontend in ONE file (design + behaviour reference for the React build).
+  Routing: hash based (#/, #/login, #/app/chat/:id ...)  ->  React Router DOM routes.
+  JS sections map 1:1 to the React structure:
+    CONFIG / MOCK DATA      -> src/data/*.js
+    SERVICES                -> src/services/*.js
+    UI HELPERS (modal etc.) -> src/components/common/*
+    LANDING / AUTH / APP    -> src/pages/* + src/components/{landing,auth,dashboard,chat,sources,settings,layout}/*
+  Everything is demo behaviour: no backend, no real auth, no real AI.
+-->
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --navy:#101426;--ink:#0B1020;--pri:#635BFF;--pri-d:#5046E5;--pri-t:#5046E5;--vio:#8B5CF6;--cy:#35C8F4;
+  --bg:#F7F8FC;--card:#FFFFFF;--text:#171B2C;--muted:#6B7280;--line:#E7EAF2;--soft:#EFEEFF;--hover:#F0F2F8;
+  --ok:#12875A;--warn:#A56300;--err:#D13C41;--ok-bg:#E6F6EE;--warn-bg:#FDF2DC;--err-bg:#FDECEC;
+  --r-sm:8px;--r:12px;--r-lg:18px;--r-xl:24px;
+  --sh-1:0 1px 2px rgba(16,20,38,.05);--sh-2:0 10px 28px -12px rgba(16,20,38,.18);--sh-3:0 40px 80px -30px rgba(5,8,20,.7);
+  --side:268px;--head:'Manrope','Inter',system-ui,sans-serif;--body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+[data-theme=dark]{
+  --bg:#0B1020;--card:#131A33;--text:#ECEEF7;--muted:#9BA4BA;--line:#252D4B;--soft:#1E2256;--hover:#1A2242;--pri-t:#A9A4FF;
+  --ok:#3CCB8D;--warn:#F5B041;--err:#FF7A7E;--ok-bg:#10301F;--warn-bg:#3A2A08;--err-bg:#3A1518;
+  --sh-1:0 1px 2px rgba(0,0,0,.3);--sh-2:0 10px 28px -12px rgba(0,0,0,.6);
+}
+/* ============ BASE ============ */
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font:400 15px/1.6 var(--body);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+[data-density=compact] body{font-size:14px}
+h1,h2,h3,h4{font-family:var(--head);line-height:1.15;letter-spacing:-.02em;text-wrap:balance;font-weight:700}
+p{text-wrap:pretty}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+a{color:inherit;text-decoration:none}
+input,textarea,select{font:inherit;color:inherit}
+ul{padding:0;list-style:none}
+:focus-visible{outline:2px solid var(--pri);outline-offset:2px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;clip:auto;z-index:300;background:var(--pri);color:#fff;padding:10px 14px;border-radius:9px}
+[data-tip]{position:relative}
+.shell:not(.col) .side [data-tip]::after{display:none}
+.ic{width:18px;height:18px;flex:none;stroke-width:1.9}
+.muted{color:var(--muted)}.grow{flex:1}.row{display:flex;align-items:center}.gap8{gap:8px}.gap12{gap:12px}.wrap{flex-wrap:wrap}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.link{color:var(--pri-t);font-weight:500}.link:hover{text-decoration:underline}
+/* ============ COMMON COMPONENTS ============ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 18px;border-radius:10px;font-weight:600;font-size:14.5px;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s,box-shadow .15s}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn-pri{background:var(--pri);color:#fff;box-shadow:0 6px 16px -6px rgba(99,91,255,.7)}.btn-pri:hover:not([disabled]){background:var(--pri-d)}
+.btn-out{border:1px solid var(--line);background:var(--card)}.btn-out:hover{background:var(--hover)}
+.btn-ghost:hover{background:var(--hover)}
+.btn-danger{background:var(--err);color:#fff}[data-theme=dark] .btn-danger{color:#1b0b0c}
+.btn-glass{border:1px solid rgba(255,255,255,.2);color:#fff}.btn-glass:hover{background:rgba(255,255,255,.08)}
+.btn-white{background:#fff;color:var(--navy)}.btn-white:hover{background:#ECEBFF}
+.btn-sm{height:34px;padding:0 12px;font-size:13.5px;border-radius:8px}.btn-lg{height:50px;padding:0 24px;font-size:15.5px;border-radius:12px}
+.btn.block{width:100%}
+.btn.loading{pointer-events:none}.btn.loading::before{content:"";width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.icon-btn{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:9px;color:var(--muted);transition:background .15s,color .15s;position:relative}
+.icon-btn:hover{background:var(--hover);color:var(--text)}.icon-btn.sm{width:30px;height:30px}.icon-btn.sm .ic{width:15px;height:15px}
+.icon-btn[aria-pressed=true]{color:var(--pri-t);background:var(--soft)}
+[data-tip]:hover::after,[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;font:500 12px/1 var(--body);padding:7px 9px;border-radius:7px;white-space:nowrap;z-index:60;pointer-events:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--hover);color:var(--muted);white-space:nowrap}
+.badge .ic{width:12px;height:12px}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}.badge.warn{background:var(--warn-bg);color:var(--warn)}.badge.pri{background:var(--soft);color:var(--pri-t)}
+.t-youtube{--tc:#E0434B;--tb:#FDECEC}.t-document{--tc:#5046E5;--tb:#EFEEFF}.t-text{--tc:#0B88B5;--tb:#E3F6FD}.t-conversation{--tc:#7C3AED;--tb:#F1EAFE}
+[data-theme=dark] .t-youtube{--tc:#FF8B90;--tb:#3A1518}[data-theme=dark] .t-document{--tc:#A9A4FF;--tb:#1E2256}[data-theme=dark] .t-text{--tc:#6FD6F7;--tb:#0C2F3D}[data-theme=dark] .t-conversation{--tc:#C4A6FF;--tb:#2A1B4F}
+.tbadge{background:var(--tb);color:var(--tc)}
+.sicon{display:grid;place-items:center;width:42px;height:42px;border-radius:11px;background:var(--tb);color:var(--tc);flex:none}
+.avatar{display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,var(--pri),var(--vio));color:#fff;font:700 13px var(--head);width:36px;height:36px;flex:none}
+.avatar.lg{width:84px;height:84px;font-size:28px}
+.field{margin-bottom:16px}.field label,.lbl{display:block;font-weight:500;font-size:13.5px;margin-bottom:6px}
+.in-wrap{position:relative}
+.input,.select,.textarea{width:100%;height:44px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--card);transition:border-color .15s,box-shadow .15s}
+.textarea{height:auto;padding:11px 13px;resize:vertical}
+.input.has-ic{padding-left:40px}.in-ic{position:absolute;left:13px;top:13px;color:var(--muted)}
+.in-btn{position:absolute;right:5px;top:5px;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;color:var(--muted)}.in-btn:hover{background:var(--hover)}
+.input:focus,.select:focus,.textarea:focus{outline:0;border-color:var(--pri);box-shadow:0 0 0 3px rgba(99,91,255,.2)}
+.input[aria-invalid=true]{border-color:var(--err)}
+.input::placeholder,.textarea::placeholder{color:#9AA1B2}
+.select{appearance:none;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center}
+.select.sm{height:36px;font-size:13.5px;width:auto}
+.err-msg{color:var(--err);font-size:13px;margin-top:5px;min-height:0}.err-msg:empty{display:none}
+.help{color:var(--muted);font-size:13px;margin-top:5px}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:14px;cursor:pointer}.check input{width:17px;height:17px;margin-top:2px;accent-color:var(--pri)}
+.switch{position:relative;width:42px;height:24px;flex:none}.switch input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0;width:100%;height:100%}
+.switch span{position:absolute;inset:0;border-radius:99px;background:#C9CEDB;transition:background .15s;pointer-events:none}[data-theme=dark] .switch span{background:#3A4266}
+.switch span::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.switch input:checked+span{background:var(--pri)}.switch input:checked+span::after{transform:translateX(18px)}
+.switch input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2px}
+.alert{display:flex;gap:10px;padding:11px 13px;border-radius:10px;font-size:14px;margin-bottom:16px}.alert .ic{margin-top:2px}
+.alert.err{background:var(--err-bg);color:var(--err)}.alert.info{background:var(--soft);color:var(--pri-t)}.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.menu-wrap{position:relative;z-index:2}
+.menu{position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-2);padding:6px;z-index:40;animation:pop .14s ease-out}
+.menu.up{top:auto;bottom:calc(100% + 6px)}.menu.left{right:auto;left:0}.menu[hidden]{display:none}
+.menu button,.menu a{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:8px;font-size:14px;text-align:left}
+.menu button:hover,.menu a:hover{background:var(--hover)}.menu .danger{color:var(--err)}.menu hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+.menu .ic{width:16px;height:16px;color:var(--muted)}.menu .danger .ic{color:inherit}
+@keyframes pop{from{opacity:0;transform:translateY(-4px) scale(.98)}}
+.backdrop{position:fixed;inset:0;background:rgba(8,11,24,.55);display:grid;place-items:center;padding:16px;z-index:100;animation:fade .15s}
+.modal{width:min(460px,100%);background:var(--card);border-radius:var(--r-lg);border:1px solid var(--line);box-shadow:var(--sh-3);padding:24px;animation:pop .18s ease-out;max-height:90dvh;overflow:auto}
+.modal h2{font-size:19px;margin-bottom:8px}.modal p{color:var(--muted)}.modal-f{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;flex-wrap:wrap}
+@keyframes fade{from{opacity:0}}
+#toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:200;max-width:calc(100vw - 32px)}
+.toast{display:flex;align-items:center;gap:10px;background:var(--navy);color:#fff;padding:12px 15px;border-radius:12px;font-size:14px;box-shadow:var(--sh-2);animation:pop .2s ease-out;border:1px solid rgba(255,255,255,.08)}
+.toast.ok .ic{color:#5BE0A5}.toast.err .ic{color:#FF8B90}.toast.info .ic{color:var(--cy)}
+.tabs{display:flex;gap:4px;padding:4px;background:var(--hover);border-radius:11px;overflow-x:auto;max-width:100%}
+.tabs button{padding:7px 13px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--muted);white-space:nowrap;display:flex;gap:7px;align-items:center}
+.tabs button[aria-selected=true],.tabs button[aria-pressed=true]{background:var(--card);color:var(--text);box-shadow:var(--sh-1)}
+.tabs .n{font-size:12px;color:var(--muted)}
+.empty{text-align:center;padding:52px 20px;display:grid;justify-items:center;gap:8px}
+.empty .eico{width:56px;height:56px;border-radius:16px;background:var(--soft);color:var(--pri-t);display:grid;place-items:center;margin-bottom:6px}.empty .eico .ic{width:24px;height:24px}
+.empty h3{font-size:17px}.empty p{color:var(--muted);max-width:42ch}.empty .btn{margin-top:10px}
+.skel{border-radius:10px;background:linear-gradient(90deg,var(--hover) 25%,var(--line) 50%,var(--hover) 75%);background-size:200% 100%;animation:sk 1.2s linear infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.search{position:relative;flex:1;min-width:180px}.search .ic{position:absolute;left:12px;top:11px;color:var(--muted)}.search .input{height:40px;padding-left:38px}
+.tags{display:flex;gap:6px;flex-wrap:wrap}.tag{font-size:12px;padding:2px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+.brand{display:inline-flex;align-items:center;gap:10px;font:800 17px var(--head);letter-spacing:-.01em}
+.stretch::after{content:"";position:absolute;inset:0;border-radius:inherit}
+/* ============ LANDING ============ */
+.wrapx{width:min(1200px,100% - 40px);margin-inline:auto}
+.dark-zone{background:var(--ink);color:#fff;position:relative;overflow:hidden}
+.dark-zone::before{content:"";position:absolute;inset:0;background:radial-gradient(55% 55% at 82% 8%,rgba(99,91,255,.38),transparent 70%),radial-gradient(40% 40% at 5% 95%,rgba(53,200,244,.13),transparent 70%);pointer-events:none}
+.dark-zone::after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:56px 56px;mask-image:linear-gradient(#000,transparent 75%);-webkit-mask-image:linear-gradient(#000,transparent 75%);pointer-events:none}
+.dark-zone>*{position:relative;z-index:1}
+.ann{display:flex;justify-content:center;align-items:center;gap:12px;padding:9px 44px 9px 16px;font-size:13.5px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);color:#C9CDE0;text-align:center}
+.ann a{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.ann button{position:absolute;right:10px;top:5px;width:30px;height:30px;display:grid;place-items:center;color:#9BA4BA;border-radius:8px}.ann button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav{position:sticky;top:0;z-index:50;transition:background .2s,border-color .2s;border-bottom:1px solid transparent;color:#fff}
+.nav.scrolled{background:rgba(11,16,32,.88);backdrop-filter:blur(12px);border-color:rgba(255,255,255,.08)}
+.nav-in{display:flex;align-items:center;gap:28px;height:68px}
+.nav-links{display:flex;gap:4px;margin-left:12px}
+.nav-links button{padding:8px 12px;border-radius:8px;font-size:14.5px;color:#C4C9DC;font-weight:500}.nav-links button:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-cta{display:flex;gap:8px;margin-left:auto}
+.nav-burger{display:none;margin-left:auto;width:42px;height:42px;place-items:center;border-radius:10px;color:#fff}.nav-burger:hover{background:rgba(255,255,255,.08)}
+.mnav{display:none;padding:8px 20px 22px;border-top:1px solid rgba(255,255,255,.08);background:var(--ink);animation:pop .18s ease-out}
+.mnav button.l{display:block;width:100%;text-align:left;padding:13px 4px;font-size:16px;color:#DDE0EE;border-bottom:1px solid rgba(255,255,255,.07)}
+.mnav .btn{margin-top:14px}
+.hero{padding:clamp(48px,7vw,96px) 0 clamp(64px,8vw,110px)}
+.hero-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(32px,5vw,72px);align-items:center}
+.eyebrow{font:600 12.5px var(--body);letter-spacing:.14em;color:#A9A4FF;margin-bottom:22px}
+.hero h1{font-size:clamp(38px,5.3vw,66px);font-weight:800;letter-spacing:-.035em;line-height:1.04}
+.hero .lead{font-size:clamp(16px,1.4vw,18.5px);color:#B9BFD4;margin:22px 0 32px;max-width:52ch}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap}
+.micro{margin-top:26px;font-size:13.5px;color:#8E96AE}
+/* hero product preview */
+.pvw{position:relative;padding-bottom:90px}
+.pv{background:#fff;color:#171B2C;border-radius:20px;box-shadow:var(--sh-3),0 0 0 1px rgba(255,255,255,.1);overflow:hidden;font-size:14px}
+.pv-bar{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #E7EAF2;background:#FAFBFE}
+.dots{display:flex;gap:6px}.dots i{width:9px;height:9px;border-radius:50%;background:#D9DDE8}
+.pv-bar b{font:700 13.5px var(--head)}.pv-bar .badge{margin-left:auto;background:#EFEEFF;color:#5046E5}
+.pv-body{padding:20px 20px 8px;display:grid;gap:18px}
+.pv-q{justify-self:end;background:#101426;color:#fff;padding:10px 14px;border-radius:14px 14px 4px 14px;max-width:86%}
+.pv-a{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;position:relative}
+.pv-a p{line-height:1.65}
+.c{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:5px;background:#EFEEFF;color:#5046E5;font:700 11px var(--body);vertical-align:2px;margin:0 1px}
+.pv-typing{position:absolute;left:40px;top:6px;display:flex;gap:5px}
+.pv-typing i,.typing i{width:7px;height:7px;border-radius:50%;background:#B4B9C9;animation:blink 1.1s infinite}.pv-typing i:nth-child(2),.typing i:nth-child(2){animation-delay:.18s}.pv-typing i:nth-child(3),.typing i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,80%,100%{opacity:.25;transform:none}40%{opacity:1;transform:translateY(-3px)}}
+.pv-cites{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.pv-cite{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid #E7EAF2;border-radius:12px;min-width:0}
+.pv-cite .sicon{width:34px;height:34px;border-radius:9px}.pv-cite b{display:block;font-size:12.5px;font-weight:600}.pv-cite span{font-size:12px;color:#6B7280}
+.pv-cite>div{min-width:0}.pv-cite b,.pv-cite span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.pv-comp{margin:8px 16px 16px;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 16px;border:1px solid #E1E5EF;border-radius:14px;color:#9AA1B2;box-shadow:0 4px 14px -8px rgba(16,20,38,.2)}
+.pv-comp span:last-child{margin-left:auto;width:32px;height:32px;border-radius:9px;background:#635BFF;color:#fff;display:grid;place-items:center}
+.pv-float{position:absolute;right:-20px;bottom:0;width:250px;background:#151B36;color:#DDE0EE;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px 14px;font-size:12.5px;box-shadow:var(--sh-3)}
+.pv-float b{display:flex;align-items:center;gap:6px;color:#fff;font-size:12px;margin-bottom:4px}.pv-float b .ic{width:13px;height:13px;color:var(--cy)}
+@media (prefers-reduced-motion:no-preference){
+  .pv-q{animation:rise .5s .3s both}.pv-typing{animation:tfade 1.7s .8s both}.pv-ans{animation:rise .5s 2.4s both}.pv-cite{animation:rise .45s 2.8s both}.pv-cite+.pv-cite{animation-delay:2.95s}.pv-float{animation:rise .5s 3.3s both}
+  .rv{opacity:0;transform:translateY(14px);transition:opacity .6s,transform .6s}.rv.in{opacity:1;transform:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.pv-typing{display:none}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+@keyframes tfade{0%,100%{opacity:0}12%,88%{opacity:1}}
+.strip{border-bottom:1px solid var(--line);background:var(--card)}
+.strip p{padding:26px 0;text-align:center;color:var(--muted);font-size:15px}
+.sec{padding:clamp(64px,8vw,112px) 0}.sec.alt{background:var(--card);border-block:1px solid var(--line)}
+.sec-h{max-width:640px;margin-bottom:clamp(32px,4vw,52px)}
+.sec-h h2{font-size:clamp(28px,3.4vw,42px);font-weight:800;letter-spacing:-.03em}.sec-h p{color:var(--muted);font-size:17px;margin-top:14px}
+.feat-g{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.feat{padding:26px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);transition:border-color .2s,transform .2s,box-shadow .2s}
+.feat:hover{border-color:#C9C6FF;transform:translateY(-2px);box-shadow:var(--sh-2)}
+.feat .fi{width:44px;height:44px;border-radius:12px;background:var(--soft);color:var(--pri-t);display:grid;place-items:center;margin-bottom:18px}.feat .fi .ic{width:21px;height:21px}
+.feat h3{font-size:17.5px;margin-bottom:8px}.feat p{color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;counter-reset:s;position:relative}
+.steps::before{content:"";position:absolute;left:24px;right:24px;top:23px;border-top:2px dashed var(--line)}
+.step{padding-right:32px;position:relative;counter-increment:s}
+.step .num{width:48px;height:48px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font:800 17px var(--head);margin-bottom:22px;position:relative;box-shadow:0 0 0 8px var(--bg)}
+.sec.alt .step .num{box-shadow:0 0 0 8px var(--card)}[data-theme=dark] .step .num{background:var(--pri)}
+.step .num::before{content:counter(s)}.step h3{font-size:19px;margin-bottom:8px}.step p{color:var(--muted);max-width:34ch}
+.kinds{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.kind{display:flex;gap:14px;padding:18px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card)}
+.kind h3{font-size:15.5px;margin-bottom:3px;font-family:var(--body);font-weight:600;letter-spacing:0}.kind p{font-size:14px;color:var(--muted)}
+.note{display:flex;gap:10px;margin-top:22px;padding:14px 16px;border-radius:12px;background:var(--soft);color:var(--pri-t);font-size:14px}
+.ground{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.gcard{border-radius:var(--r-xl);border:1px solid var(--line);background:var(--card);padding:24px;box-shadow:var(--sh-1)}
+.gcard>h3{display:flex;align-items:center;gap:9px;font-size:16px;margin-bottom:16px}.gcard>h3 .ic{color:var(--ok)}.gcard.no>h3 .ic{color:var(--warn)}
+.gq{font-weight:600;margin-bottom:10px}.gcard .gbody{color:var(--text);margin-bottom:14px}
+.gref{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;margin-top:8px;font-size:13.5px}
+.gref .c{flex:none}.gref span{color:var(--muted);margin-left:auto;white-space:nowrap;font-size:12.5px}.gref b{font-weight:500}
+.gcard.no .box{padding:16px;border-radius:12px;border:1px dashed var(--line);background:var(--bg);color:var(--muted)}
+.show{border-radius:var(--r-xl);border:1px solid var(--line);background:var(--card);box-shadow:var(--sh-2);overflow:hidden;display:grid;grid-template-columns:210px minmax(0,1fr) 250px;font-size:13.5px;min-height:420px}
+.show-side{background:var(--navy);color:#C4C9DC;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+.show-side .brand{color:#fff;font-size:14px;margin:0 6px 14px}.show-side .it{display:flex;gap:9px;align-items:center;padding:8px 9px;border-radius:8px}.show-side .it.on{background:rgba(255,255,255,.09);color:#fff}
+.show-side .it .ic{width:15px;height:15px}.show-side small{margin:14px 9px 4px;font-size:11.5px;color:#7B84A0}
+.show-side .u{margin-top:auto;display:flex;gap:9px;align-items:center;padding:9px;border-radius:10px;background:rgba(255,255,255,.06);position:relative}
+.show-side .u .avatar{width:28px;height:28px;font-size:11px}.show-side .pop{position:absolute;left:8px;right:8px;bottom:calc(100% + 6px);background:#fff;color:#171B2C;border-radius:10px;padding:6px;box-shadow:var(--sh-2);font-size:12.5px}
+.show-side .pop div{padding:6px 8px;display:flex;gap:8px;align-items:center}.show-side .pop .ic{width:13px;height:13px;color:#6B7280}
+.show-main{padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.show-main h4{font-size:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.show-main .q{align-self:flex-end;background:var(--navy);color:#fff;padding:9px 13px;border-radius:13px 13px 4px 13px;max-width:85%}[data-theme=dark] .show-main .q{background:var(--soft)}
+.show-main .a{display:grid;grid-template-columns:26px 1fr;gap:10px}.show-main .comp-mini{margin-top:auto;border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:var(--muted)}
+.show-dr{border-left:1px solid var(--line);padding:18px;background:var(--bg)}
+.show-dr h4{font-size:13.5px;margin-bottom:12px}.show-dr .ex{border-left:3px solid var(--pri);padding:8px 12px;background:var(--card);border-radius:0 9px 9px 0;margin:12px 0;font-size:13px}
+.faq{max-width:780px;margin-inline:auto}
+.faq-i{border-bottom:1px solid var(--line)}
+.faq-q{display:flex;justify-content:space-between;align-items:center;gap:16px;width:100%;padding:20px 2px;font:600 16.5px var(--head);text-align:left}
+.faq-q .ic{transition:transform .2s;color:var(--muted)}.faq-q[aria-expanded=true] .ic{transform:rotate(180deg)}
+.faq-a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s}.faq-a>div{overflow:hidden}.faq-a p{padding:0 2px 20px;color:var(--muted);max-width:68ch}
+.faq-q[aria-expanded=true]+.faq-a{grid-template-rows:1fr}
+.cta{text-align:center;padding:clamp(64px,8vw,104px) 0}
+.cta h2{font-size:clamp(30px,4vw,50px);font-weight:800;letter-spacing:-.03em}.cta p{color:#B9BFD4;margin:16px auto 30px;font-size:17px;max-width:46ch}
+.cta .hero-cta{justify-content:center}
+.foot{background:var(--ink);color:#9BA4BA;border-top:1px solid rgba(255,255,255,.08);padding:52px 0 28px;font-size:14px}
+.foot-g{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:32px}
+.foot .brand{color:#fff;margin-bottom:12px}.foot h4{color:#fff;font:600 14px var(--body);letter-spacing:0;margin-bottom:12px}
+.foot li{margin-bottom:9px}.foot a:hover,.foot li button:hover{color:#fff}
+.foot-b{margin-top:38px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px}
+.legal{max-width:760px;margin:0 auto;padding:56px 20px 80px}.legal h1{font-size:34px;margin:24px 0 10px}.legal h2{font-size:19px;margin:28px 0 8px}.legal p{color:var(--muted);margin-bottom:10px}
+/* ============ AUTH ============ */
+.auth{min-height:100dvh;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)}
+.auth-side{padding:40px clamp(28px,4vw,56px);display:flex;flex-direction:column;color:#fff}
+.auth-side .mid{margin:auto 0;max-width:440px}.auth-side h2{font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-.03em;margin-bottom:16px}
+.auth-side p{color:#B9BFD4}.auth-side li{display:flex;gap:10px;margin-top:14px;color:#DDE0EE}.auth-side li .ic{color:var(--cy);margin-top:3px}
+.auth-side .tiny{font-size:13px;color:#8E96AE}
+.auth-main{display:grid;place-items:center;padding:32px 20px;background:var(--bg)}
+.auth-card{width:min(430px,100%)}
+.auth-card .brand.m{display:none;margin-bottom:28px}
+.auth-card h1{font-size:28px;margin-bottom:6px}.auth-card .sub{color:var(--muted);margin-bottom:24px}
+.auth-foot{margin-top:20px;text-align:center;color:var(--muted);font-size:14px}
+.demo-box{margin-top:22px;padding:14px;border:1px dashed var(--line);border-radius:12px;font-size:13.5px;color:var(--muted);background:var(--card)}
+.demo-box code{font:600 13px ui-monospace,Menlo,monospace;color:var(--text);background:var(--hover);padding:1px 6px;border-radius:5px}
+.demo-box .btn{margin-top:10px}
+/* ============ APP SHELL ============ */
+.shell{display:grid;grid-template-columns:var(--side) minmax(0,1fr);height:100dvh;transition:grid-template-columns .2s}
+.shell.col{grid-template-columns:74px minmax(0,1fr)}
+.side{background:var(--navy);color:#C4C9DC;display:flex;flex-direction:column;padding:14px 12px;min-height:0;z-index:80}
+[data-theme=dark] .side{background:#0E1430;border-right:1px solid var(--line)}
+.side-top{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 16px}
+.side .brand{color:#fff}.side .icon-btn{color:#9BA4BA}.side .icon-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+.snav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;font-weight:500;font-size:14.5px;position:relative;margin-bottom:2px;transition:background .15s,color .15s}
+.snav a:hover{background:rgba(255,255,255,.07);color:#fff}
+.snav a[aria-current=page]{background:rgba(99,91,255,.24);color:#fff}.snav a[aria-current=page] .ic{color:#B7B3FF}
+.snav a.new{border:1px solid rgba(255,255,255,.14);margin-bottom:8px;color:#fff}
+.side-sec{margin-top:18px;display:flex;flex-direction:column;min-height:0;flex:1}
+.side-sec .h{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#7B84A0;padding:0 12px 6px;font-weight:600}
+.side-search{position:relative;margin:0 4px 8px}.side-search .ic{position:absolute;left:10px;top:9px;width:15px;height:15px;color:#7B84A0}
+.side-search input{width:100%;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);padding:0 10px 0 32px;font-size:13.5px;color:#fff}
+.side-search input::placeholder{color:#7B84A0}
+.recents{overflow:auto;flex:1;min-height:0}
+.recents a{display:block;padding:8px 12px;border-radius:8px;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recents a:hover{background:rgba(255,255,255,.07);color:#fff}.recents a[aria-current=page]{background:rgba(255,255,255,.09);color:#fff}
+.recents .none{padding:8px 12px;font-size:13px;color:#7B84A0}
+.side-user{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.05);margin-top:10px}
+.side-user a{display:flex;gap:10px;align-items:center;min-width:0;flex:1}.side-user b{display:block;color:#fff;font-size:13.5px;font-weight:600}.side-user small{font-size:12px;color:#8E96AE}
+.shell.col .side{padding-inline:10px}.shell.col .lbl-t,.shell.col .side-sec,.shell.col .side-user .txt,.shell.col .brand span{display:none}
+.shell.col .side-top{flex-direction:column;gap:10px;padding-inline:0}.shell.col .snav a{justify-content:center;padding:11px 0}.shell.col .side-user{flex-direction:column;padding:8px 4px;background:none}
+.shell.col .snav{flex:1}
+.shell.col .snav a[data-tip]:hover::after{top:50%;left:calc(100% + 10px);transform:translateY(-50%)}
+.main{display:flex;flex-direction:column;min-width:0;height:100dvh}
+.top{display:flex;align-items:center;gap:10px;height:62px;padding:0 clamp(14px,2.4vw,28px);border-bottom:1px solid var(--line);background:var(--card);flex:none}
+.top .burger{display:none}
+.crumbs{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);min-width:0}.crumbs b{color:var(--text);font-weight:600}.crumbs .ic{width:14px;height:14px}
+.top .dot{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--err);border:2px solid var(--card)}
+.notif{width:310px;padding:8px}.notif .nh{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 8px;font-weight:600;font-size:14px}
+.notif .ni{display:flex;gap:10px;padding:9px 8px;border-radius:8px;font-size:13.5px}.notif .ni small{display:block;color:var(--muted);font-size:12px}
+.notif .nh button{width:auto;padding:4px 8px;font-size:12.5px;color:var(--pri-t)}
+.content{flex:1;overflow:auto;padding:28px clamp(14px,2.6vw,36px) 48px;min-height:0}
+[data-density=compact] .content{padding-top:18px}
+.page{max-width:1180px;margin:0 auto}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.ph h1{font-size:clamp(24px,2.4vw,30px);font-weight:800}.ph p{color:var(--muted);margin-top:4px}
+.scrim{display:none}
+/* overview */
+.home-comp{padding:20px;border-radius:var(--r-xl);margin-bottom:22px;background:linear-gradient(180deg,var(--card),var(--card)) padding-box,linear-gradient(135deg,rgba(99,91,255,.5),rgba(53,200,244,.4)) border-box;border:1px solid transparent;box-shadow:var(--sh-2)}
+.sugs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.sug{padding:8px 13px;border-radius:99px;border:1px solid var(--line);font-size:13.5px;color:var(--text);background:var(--card);text-align:left;transition:border-color .15s,background .15s}
+.sug:hover{border-color:var(--pri);background:var(--soft)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{padding:18px}.stat .k{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13.5px}.stat .k .ic{width:16px;height:16px}
+.stat .v{font:800 30px var(--head);letter-spacing:-.03em;margin-top:8px}.stat small{color:var(--muted);font-size:12.5px}
+.cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start}
+.stack{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+.blk{padding:20px;min-width:0}.blk-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.blk-h h2{font-size:16.5px}
+.li{display:flex;gap:12px;align-items:center;padding:12px 8px;border-radius:11px;position:relative;transition:background .15s}
+.li:hover{background:var(--hover)}.li+.li{border-top:1px solid var(--line)}.li:hover+.li,.li:hover{border-color:transparent}
+.li .b{min-width:0;flex:1}.li h3{font:600 14.5px var(--body);letter-spacing:0}.li p{font-size:13.5px;color:var(--muted)}
+.li .meta{font-size:12.5px;color:var(--muted);white-space:nowrap;text-align:right}
+.bars{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:6px}
+.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.bars i{display:block;width:100%;max-width:34px;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--pri),var(--vio));min-height:4px}
+.bars span{font-size:11.5px;color:var(--muted)}.bars b{font-size:11.5px;font-weight:600}
+.tl li{display:flex;gap:12px;padding:10px 0;font-size:14px}.tl li+li{border-top:1px solid var(--line)}
+.tl .tico{width:30px;height:30px;border-radius:9px;background:var(--hover);display:grid;place-items:center;color:var(--muted);flex:none}.tl .tico .ic{width:15px;height:15px}.tl small{display:block;color:var(--muted);font-size:12.5px}
+/* composer */
+.comp{border:1px solid var(--line);border-radius:16px;background:var(--card);padding:12px 12px 10px;transition:border-color .15s,box-shadow .15s}
+.comp:focus-within{border-color:var(--pri);box-shadow:0 0 0 3px rgba(99,91,255,.16)}
+.comp textarea{width:100%;border:0;outline:0;background:none;resize:none;padding:4px 6px;max-height:180px;line-height:1.55;display:block;font-size:15.5px}
+.comp-row{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.scope{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}.scope .select{height:34px;border-radius:8px;font-size:13.5px;width:auto;color:var(--text)}
+.count{font-size:12px;color:var(--muted)}
+.send{width:38px;height:38px;border-radius:11px;background:var(--pri);color:#fff;display:grid;place-items:center;transition:background .15s,opacity .15s}.send:hover:not([disabled]){background:var(--pri-d)}
+.send[disabled]{background:var(--line);color:var(--muted);cursor:not-allowed}
+.hint{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+/* chat */
+.content.flush{padding:0;overflow:hidden}
+.chat{display:grid;grid-template-columns:minmax(0,1fr);height:100%}.chat.has-panel{grid-template-columns:minmax(0,1fr) 370px}
+.chat-main{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%}
+.chat-head{display:flex;align-items:center;gap:10px;padding:12px clamp(14px,2.4vw,28px);border-bottom:1px solid var(--line);flex:none}
+.chat-head h1{font-size:17px;min-width:0}.chat-head .ttl{display:flex;align-items:center;gap:8px;min-width:0;padding:5px 8px;margin-left:-8px;border-radius:8px;text-align:left}
+.chat-head .ttl:hover{background:var(--hover)}.chat-head .ttl .ic{width:14px;height:14px;color:var(--muted);opacity:0}.chat-head .ttl:hover .ic,.chat-head .ttl:focus-visible .ic{opacity:1}
+.msgs{flex:1;overflow:auto;padding:28px clamp(14px,2.4vw,28px) 12px;min-height:0}
+.msgs-in,.comp-in{max-width:780px;margin:0 auto}
+.m{margin-bottom:28px}
+.m-user{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.bubble{background:var(--navy);color:#fff;padding:11px 16px;border-radius:18px 18px 5px 18px;max-width:min(85%,560px);overflow-wrap:anywhere}[data-theme=dark] .bubble{background:var(--soft)}
+.m-ai{display:grid;grid-template-columns:32px minmax(0,1fr);gap:14px}
+.m-meta{display:flex;align-items:center;gap:9px;margin-bottom:6px;font-size:13.5px;flex-wrap:wrap}.m-meta time{color:var(--muted);font-size:12.5px}
+.prose{font-size:15.5px;line-height:1.72;overflow-wrap:anywhere}.prose p{margin-bottom:10px}.prose ul{list-style:disc;padding-left:20px;margin-bottom:10px}.prose li{margin-bottom:7px}.prose li::marker{color:var(--pri)}
+.cite{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:6px;background:var(--soft);color:var(--pri-t);font:700 11.5px var(--body);vertical-align:2px;margin-left:3px;transition:background .15s,color .15s}
+.cite:hover{background:var(--pri);color:#fff}
+.cites{margin-top:14px}.cites-h{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);font-weight:600;margin-bottom:8px}.cites-h .ic{width:14px;height:14px}
+.cites-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.ccard{display:flex;gap:10px;align-items:center;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);min-width:0;transition:border-color .15s,box-shadow .15s}
+.ccard:hover{border-color:var(--pri);box-shadow:var(--sh-1)}.ccard .num{flex:none}.ccard div{min-width:0}
+.ccard b{display:block;font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ccard small{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}.ccard small .ic{width:12px;height:12px}
+.m-act{display:flex;gap:2px;margin-top:8px;align-items:center}
+.fallback{display:flex;gap:12px;padding:14px 16px;border:1px dashed var(--line);border-radius:14px;background:var(--bg)}.fallback .ic{color:var(--warn);margin-top:3px}
+.typing{display:flex;gap:5px;padding:12px 0}
+.fups{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px 46px}
+.comp-wrap{padding:8px clamp(14px,2.4vw,28px) 14px;flex:none}
+.chat-empty{display:grid;place-content:center;justify-items:center;text-align:center;min-height:100%;gap:10px;padding:20px 0}
+.chat-empty h2{font-size:clamp(24px,3vw,32px);font-weight:800}.chat-empty p{color:var(--muted);max-width:48ch}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;width:min(640px,100%)}
+.pgrid button{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card);font-size:14px;transition:border-color .15s,transform .15s}
+.pgrid button:hover{border-color:var(--pri);transform:translateY(-1px)}.pgrid .ic{color:var(--pri-t);margin-top:2px}
+.spanel{border-left:1px solid var(--line);background:var(--card);overflow:auto;padding:18px;display:none}.chat.has-panel .spanel{display:block}
+.sp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.sp-h h2{font-size:15px}
+.spanel h3{font-size:17px;margin:10px 0 6px}
+.quote{border-left:3px solid var(--pri);background:var(--bg);padding:12px 14px;border-radius:0 11px 11px 0;margin:14px 0;font-size:14.5px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px;margin:14px 0}.kv dt{color:var(--muted)}.kv dd{margin:0;text-align:right;overflow-wrap:anywhere}
+/* history + sources */
+.fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.vt{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card)}.vt button{width:36px;height:34px;display:grid;place-items:center;color:var(--muted)}.vt button[aria-pressed=true]{background:var(--soft);color:var(--pri-t)}
+.hlist{display:grid;gap:10px}.hlist.grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.hitem{padding:16px 18px;position:relative;display:flex;gap:14px;align-items:flex-start;transition:border-color .15s,box-shadow .15s}.hitem:hover{border-color:#C9C6FF;box-shadow:var(--sh-2)}
+.hitem .b{flex:1;min-width:0}.hitem h3{font:600 15.5px var(--body);letter-spacing:0;margin-bottom:3px}.hitem p{color:var(--muted);font-size:14px}
+.hitem .mt{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--muted)}.hitem .mt span{display:flex;align-items:center;gap:5px}.hitem .mt .ic{width:13px;height:13px}
+.sum{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.sum .card{padding:16px;display:flex;gap:12px;align-items:center}.sum b{font:800 22px var(--head);display:block;line-height:1.1}.sum span{font-size:13px;color:var(--muted)}
+.sgrid{align-items:start;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.scard{position:relative;overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s,transform .15s}.scard:hover{border-color:#C9C6FF;box-shadow:var(--sh-2);transform:translateY(-2px)}
+.thumb{aspect-ratio:16/8;background:radial-gradient(80% 120% at 20% 0,rgba(99,91,255,.55),transparent 60%),radial-gradient(70% 100% at 100% 100%,rgba(53,200,244,.4),transparent 60%),#151B36;display:grid;place-items:center;position:relative}
+.thumb .play{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center;color:#151B36}.thumb .play .ic{margin-left:2px}
+.thumb .dur{position:absolute;right:10px;bottom:10px;background:rgba(0,0,0,.7);color:#fff;font-size:12px;padding:2px 7px;border-radius:6px;font-weight:600}
+.sc-b{padding:16px 18px 18px;display:flex;flex-direction:column;gap:9px;flex:1}.sc-b h3{font:600 16px var(--body);letter-spacing:0;overflow-wrap:anywhere}
+.sc-top{display:flex;gap:12px;align-items:center}
+.sc-m{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:auto;padding-top:4px}.sc-m span{display:flex;gap:5px;align-items:center}.sc-m .ic{width:13px;height:13px}
+.more{display:grid;place-items:center;margin-top:22px}
+.det{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+.seg{display:flex;gap:14px;padding:13px 0}.seg+.seg{border-top:1px solid var(--line)}
+.seg .ts{flex:none;font:600 12.5px ui-monospace,Menlo,monospace;color:var(--pri-t);background:var(--soft);padding:3px 8px;border-radius:6px;height:fit-content}
+.seg.hl{background:var(--soft);margin-inline:-12px;padding-inline:12px;border-radius:10px;border-color:transparent}
+/* profile + settings */
+.pcard{padding:24px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.set{display:grid;grid-template-columns:220px minmax(0,1fr);gap:22px;align-items:start}
+.set-nav{display:grid;gap:2px;padding:8px}.set-nav button{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:9px;font-weight:500;font-size:14.5px;color:var(--muted);text-align:left}
+.set-nav button:hover{background:var(--hover)}.set-nav button[aria-selected=true]{background:var(--soft);color:var(--pri-t)}
+.set-b{padding:8px 24px}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0}.srow+.srow{border-top:1px solid var(--line)}
+.srow h3{font:600 15px var(--body);letter-spacing:0}.srow p{font-size:13.5px;color:var(--muted);max-width:52ch}
+.nf{min-height:100dvh;display:grid;place-items:center;text-align:center;padding:24px}.nf .code{font:800 96px var(--head);letter-spacing:-.05em;background:linear-gradient(135deg,var(--pri),var(--cy));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+/* ============ RESPONSIVE ============ */
+@media (max-width:1180px){.chat.has-panel{grid-template-columns:minmax(0,1fr)}.chat.has-panel .spanel{position:fixed;right:0;top:0;bottom:0;width:min(400px,100%);z-index:90;box-shadow:var(--sh-3);animation:slide .2s ease-out}.stats,.sum{grid-template-columns:repeat(2,1fr)}}
+@keyframes slide{from{transform:translateX(30px);opacity:0}}
+@media (max-width:1000px){
+  .hero-g{grid-template-columns:1fr}.pv-float{right:8px}
+  .feat-g,.kinds{grid-template-columns:repeat(2,1fr)}.show{grid-template-columns:190px minmax(0,1fr)}.show-dr{display:none}
+  .cols,.det{grid-template-columns:1fr}.set{grid-template-columns:1fr}.set-nav{display:flex;overflow-x:auto}.set-nav button{white-space:nowrap}
+  .foot-g{grid-template-columns:1fr 1fr}
+}
+@media (max-width:900px){
+  .nav-links,.nav-cta{display:none}.nav-burger{display:grid}.nav.open .mnav{display:block}.nav.open{background:var(--ink)}
+  .auth{grid-template-columns:1fr}.auth-side{display:none}.auth-card .brand.m{display:inline-flex}
+  .shell,.shell.col{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;left:0;top:0;bottom:0;width:min(290px,86vw);transform:translateX(-102%);transition:transform .22s ease-out}
+  .shell.nav-open .side{transform:none;box-shadow:var(--sh-3)}.shell.nav-open .scrim{display:block;position:fixed;inset:0;background:rgba(8,11,24,.55);z-index:70}
+  .top .burger{display:inline-grid}.side .collapse{display:none}
+  .shell.col .lbl-t,.shell.col .brand span{display:inline}.shell.col .side-sec{display:flex}.shell.col .side-user .txt{display:block}.shell.col .snav a{justify-content:flex-start;padding:10px 12px}.shell.col .side-top{flex-direction:row}.shell.col .side-user{flex-direction:row;background:rgba(255,255,255,.05);padding:10px}.shell.col .snav{flex:none}
+  .steps{grid-template-columns:1fr;gap:30px}.steps::before{left:23px;right:auto;top:24px;bottom:24px;border-top:0;border-left:2px dashed var(--line)}.step{padding:0 0 0 70px}.step .num{position:absolute;left:0;top:0;margin:0}
+  .ground{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  .feat-g,.kinds,.pgrid,.fgrid{grid-template-columns:1fr}.show{grid-template-columns:1fr}.show-side{display:none}
+  .pv-cites{grid-template-columns:1fr}.pv-float{display:none}.pvw{padding-bottom:0}
+  .stats,.sum{grid-template-columns:1fr 1fr;gap:10px}.stat .v{font-size:24px}.sum .card{flex-direction:column;align-items:flex-start}
+  .foot-g{grid-template-columns:1fr 1fr}.foot-g>div:first-child{grid-column:1/-1}
+  .crumbs span.root,.crumbs .ic{display:none}.fups{margin-left:0}.m-ai{grid-template-columns:minmax(0,1fr)}.m-ai>.mark{display:none}
+  .hitem{flex-wrap:wrap}.li .meta{display:none}.set-b{padding:4px 16px}.srow{flex-wrap:wrap}.count{display:none}
+  .hero-cta .btn{flex:1}.scope>.ic{display:none}.comp-row{flex-wrap:nowrap}.scope .select{max-width:150px}.sgrid{grid-template-columns:1fr}.notif{width:min(310px,calc(100vw - 28px))}
+  #toasts{left:16px}
+}
+</style>
+</head>
+<body>
+<a class="sr skip" href="#" data-action="skip">Skip to content</a>
+<div id="root"></div>
+<div id="overlay"></div>
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+/* ==========================================================================
+   CONFIG  (-> src/data/config.js)
+   ========================================================================== */
+const BRAND = { name: 'NEXUS AI', short: 'NEXUS', tagline: 'Answers grounded in what you actually know.' };
+const DEMO = { email: 'demo@nexusai.local', password: 'Demo123!', invite: 'NEXUS-DEMO-2026' };
+const FALLBACK_TEXT = "I couldn't find enough supporting information in the available demo knowledge base to answer this confidently. Try a different question or explore the available sources.";
+
+/* ==========================================================================
+   TINY HELPERS  (-> src/utils/*)
+   ========================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ic = (n, cls = '') => `<i data-lucide="${n}" class="ic ${cls}" aria-hidden="true"></i>`;
+const icons = () => { try { window.lucide && window.lucide.createIcons(); } catch (e) {} };
+const uid = p => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const DAY = 864e5;
+const ago = (d, h = 0) => new Date(Date.now() - d * DAY - h * 36e5).toISOString();
+const fmtDate = iso => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+function rel(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'Just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' hr ago';
+  if (s < 7 * 86400) { const d = Math.floor(s / 86400); return d === 1 ? 'Yesterday' : d + ' days ago'; }
+  return fmtDate(iso);
+}
+const initials = n => (n || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+const logo = (s = 28) => `<svg width="${s}" height="${s}" viewBox="0 0 32 32" aria-hidden="true" style="flex:none"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#635BFF"/><stop offset="1" stop-color="#35C8F4"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lg)"/><path d="M10 22V10l12 12V10" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.3" fill="#fff"/><circle cx="22" cy="22" r="2.3" fill="#fff"/></svg>`;
+
+/* localStorage wrapper with in-memory fallback */
+const mem = {};
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('nexus:' + k); if (v != null) return JSON.parse(v); } catch (e) {} return k in mem ? mem[k] : d; },
+  set(k, v) { mem[k] = v; try { localStorage.setItem('nexus:' + k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { delete mem[k]; try { localStorage.removeItem('nexus:' + k); } catch (e) {} }
+};
+
+/* ==========================================================================
+   MOCK DATA  (-> src/data/mockUser.js, mockSources.js, mockKnowledge.js ...)
+   NOTE: YouTube links are valid public placeholder videos. Titles, channels
+   and transcript excerpts are illustrative demo content, NOT from those videos.
+   ========================================================================== */
+const MOCK_USER = { name: 'Alex Morgan', email: DEMO.email, role: 'Member', createdAt: ago(120), timezone: 'UTC', language: 'English' };
+
+const TYPES = {
+  youtube: { label: 'YouTube', plural: 'YouTube videos', icon: 'play-circle' },
+  document: { label: 'Document', plural: 'Documents', icon: 'file-text' },
+  text: { label: 'Text', plural: 'Text resources', icon: 'align-left' },
+  conversation: { label: 'Conversation', plural: 'Client conversations', icon: 'messages-square' }
+};
+
+const SOURCES = [
+  { id: 'src-yt-1', type: 'youtube', title: 'Preparing for a Customer Negotiation', description: 'An illustrative video source about setting objectives, asking questions and trading concessions before and during a negotiation.', channelName: 'Business Learning Studio', videoUrl: 'https://www.youtube.com/watch?v=qp0HIF3SfI4', duration: '12:45', addedAt: ago(3), status: 'indexed', tags: ['negotiation', 'preparation'],
+    excerpts: [{ id: 'e1', timestamp: '02:15', text: 'Before any negotiation, write down your objective, your ideal outcome, and the point at which you would walk away.' }, { id: 'e2', timestamp: '05:40', text: "Ask questions early. The side that understands the other party's constraints usually shapes the deal." }, { id: 'e3', timestamp: '08:10', text: 'Trade concessions instead of giving them away. If you move on price, ask for something in return, such as a longer commitment.' }] },
+  { id: 'src-yt-2', type: 'youtube', title: 'Handling Price Objections Without Discounting', description: 'An illustrative video source on responding to price concerns by returning to value and adjusting scope instead of rate.', channelName: 'Sales Craft Weekly', videoUrl: 'https://www.youtube.com/watch?v=eIho2S0ZahI', duration: '09:30', addedAt: ago(5), status: 'indexed', tags: ['objections', 'pricing'],
+    excerpts: [{ id: 'e1', timestamp: '01:20', text: 'A price objection is often a value question. Restate the outcome the client is buying before you talk about cost.' }, { id: 'e2', timestamp: '04:05', text: 'Offer a smaller scope rather than a lower rate, so the price changes because the work changes.' }, { id: 'e3', timestamp: '07:30', text: 'Pause after stating your price. Filling the silence with justifications signals that the number is negotiable.' }] },
+  { id: 'src-yt-3', type: 'youtube', title: 'Running a Structured Discovery Call', description: 'An illustrative video source that walks through agenda setting, qualification and closing a first client call.', channelName: 'Client Work Lab', videoUrl: 'https://www.youtube.com/watch?v=arj7oStGLkU', duration: '13:10', addedAt: ago(8), status: 'indexed', tags: ['discovery', 'communication'],
+    excerpts: [{ id: 'e1', timestamp: '01:45', text: 'Open by agreeing on the agenda and the time available, then let the client describe the problem in their own words.' }, { id: 'e2', timestamp: '06:20', text: 'Confirm budget range, decision makers, and deadline before you propose anything.' }, { id: 'e3', timestamp: '10:05', text: 'End every call by summarising next steps and who owns each one.' }] },
+  { id: 'src-yt-4', type: 'youtube', title: 'Building Long-Term Client Relationships', description: 'An illustrative video source about communication rhythm and project reviews that keep clients coming back.', channelName: 'Business Learning Studio', videoUrl: 'https://www.youtube.com/watch?v=iCvmsMzlF7o', duration: '17:20', addedAt: ago(14), status: 'indexed', tags: ['retention', 'communication'],
+    excerpts: [{ id: 'e1', timestamp: '03:10', text: 'Clients stay when they are never surprised. Share progress on a fixed schedule, including when there is nothing new.' }, { id: 'e2', timestamp: '09:45', text: 'Review outcomes together at the end of each project and ask what you should change next time.' }] },
+  { id: 'src-doc-1', type: 'document', title: 'Pricing Playbook 2026', fileName: 'Pricing-Playbook-2026.pdf', fileType: 'PDF', pages: 18, description: 'Sample document describing package tiers, discount rules and how to present options to a client.', addedAt: ago(2), status: 'indexed', tags: ['pricing', 'packages'],
+    excerpts: [{ id: 'e1', loc: 'Page 4', text: 'Standard projects are quoted in three tiers: Essential, Growth and Complete. Each tier lists fixed deliverables.' }, { id: 'e2', loc: 'Page 9', text: 'Discounts above 10% require a matching change: a longer contract, upfront payment, or reduced scope.' }, { id: 'e3', loc: 'Page 12', text: 'Always present the middle tier first. Most clients choose it when it is shown as the reference option.' }] },
+  { id: 'src-doc-2', type: 'document', title: 'Client Onboarding Guide', fileName: 'Client-Onboarding-Guide.docx', fileType: 'DOCX', pages: 11, description: 'Sample document covering the first week with a new client: welcome email, kickoff call and shared project summary.', addedAt: ago(6), status: 'indexed', tags: ['onboarding'],
+    excerpts: [{ id: 'e1', loc: 'Page 2', text: 'Send the welcome email and access checklist within one business day of the signed agreement.' }, { id: 'e2', loc: 'Page 3', text: 'Hold a kickoff call in week one to confirm goals, communication channel, and the first milestone date.' }, { id: 'e3', loc: 'Page 6', text: 'Share a single project summary document so the client and the team work from the same scope.' }] },
+  { id: 'src-doc-3', type: 'document', title: 'Objection Handling Handbook', fileName: 'Objection-Handling-Handbook.pdf', fileType: 'PDF', pages: 24, description: 'Sample document that classifies common client objections and gives a response pattern for each.', addedAt: ago(10), status: 'indexed', tags: ['objections', 'sales'],
+    excerpts: [{ id: 'e1', loc: 'Page 5', text: 'Acknowledge the concern first, then ask one clarifying question before responding.' }, { id: 'e2', loc: 'Page 7', text: 'The four common objections are price, timing, trust, and need. Identify which one you are hearing.' }, { id: 'e3', loc: 'Page 15', text: 'For timing objections, propose a smaller first phase with a clear start date.' }] },
+  { id: 'src-doc-4', type: 'document', title: 'Service Agreement Template', fileName: 'Service-Agreement-Template.docx', fileType: 'DOCX', pages: 9, description: 'Sample document shown in a processing state. It has no searchable excerpts yet.', addedAt: ago(0, 5), status: 'processing', tags: ['contracts'], excerpts: [] },
+  { id: 'src-txt-1', type: 'text', title: 'Company FAQ and Service Overview', description: 'Sample text resource listing services and typical delivery times.', addedAt: ago(12), status: 'indexed', tags: ['services', 'faq'],
+    excerpts: [{ id: 'e1', text: 'We provide AI chat assistants, web applications, and automation for small and mid-sized businesses.' }, { id: 'e2', text: 'Typical delivery time is two to six weeks depending on scope.' }] },
+  { id: 'src-txt-2', type: 'text', title: 'Discovery Call Checklist', description: 'Sample text resource with the points to cover on a first call and the follow-up rule.', addedAt: ago(16), status: 'indexed', tags: ['discovery', 'checklist'],
+    excerpts: [{ id: 'e1', text: 'Checklist: goal of the project, current tools, budget range, decision maker, deadline, success measure.' }, { id: 'e2', text: 'Send a written recap within 24 hours of the call.' }] },
+  { id: 'src-txt-3', type: 'text', title: 'Refund and Revision Policy Notes', description: 'Sample text resource on revisions, change requests and refunds.', addedAt: ago(20), status: 'indexed', tags: ['policy', 'revisions'],
+    excerpts: [{ id: 'e1', text: 'Each milestone includes two rounds of revisions. Additional rounds are quoted separately.' }, { id: 'e2', text: 'Work outside the agreed scope is handled through a written change request with its own price and timeline.' }, { id: 'e3', text: 'Refunds apply to milestones that have not started.' }] },
+  { id: 'src-conv-1', type: 'conversation', title: 'Call notes: retail rollout negotiation', participants: 'Account lead, client operations manager', description: 'Sample client conversation notes from a pricing negotiation for a multi-store rollout.', addedAt: ago(4), status: 'indexed', tags: ['negotiation', 'retail'],
+    excerpts: [{ id: 'e1', text: 'The client asked for a 20% reduction. We held the rate and offered a phased rollout starting with two stores.' }, { id: 'e2', text: 'Agreement was reached after linking a 5% reduction to a 12-month commitment.' }] },
+  { id: 'src-conv-2', type: 'conversation', title: 'Email thread: scope change request', participants: 'Project manager, client product owner', description: 'Sample client email thread about an extra module requested in the middle of a project.', addedAt: ago(18), status: 'indexed', tags: ['scope', 'change request'],
+    excerpts: [{ id: 'e1', text: 'The client requested an extra reporting module mid-project. We replied with a change request covering cost and a one-week extension.' }, { id: 'e2', text: 'The client approved the change request in writing before work started.' }] }
+];
+
+/* Predefined, source-grounded Q&A. Every point is tied to one source excerpt (s = source id, e = excerpt id). */
+const KNOWLEDGE = [
+  { id: 'k-neg', strong: ['negotiation', 'negotiations', 'negotiate', 'negotiating'], weak: ['strategy', 'strategies', 'deal', 'concession', 'concessions'],
+    intros: ['Your knowledge base describes a consistent approach to negotiation:', 'Across your sources, the negotiation advice comes down to these points:'],
+    points: [{ t: 'Define your objective, ideal outcome and walk-away point before the conversation starts.', s: 'src-yt-1', e: 'e1' }, { t: "Ask questions early to understand the other side's constraints.", s: 'src-yt-1', e: 'e2' }, { t: 'Trade concessions rather than giving them away, for example a lower price in exchange for a longer commitment.', s: 'src-yt-1', e: 'e3' }, { t: 'In the retail rollout call, the rate was held and a phased rollout was offered instead of a discount.', s: 'src-conv-1', e: 'e1' }, { t: 'Discounts above 10% need a matching change such as a longer contract or reduced scope.', s: 'src-doc-1', e: 'e2' }],
+    followups: ['How should I handle a price objection?', 'What are the discount rules?', 'How do I prepare a discovery call?'] },
+  { id: 'k-obj', strong: ['objection', 'objections', 'pushback', 'too expensive'], weak: ['expensive', 'concern', 'concerns', 'price', 'hesitant'],
+    intros: ['Your sources describe a clear pattern for customer objections:', 'Here is what your knowledge base says about handling objections:'],
+    points: [{ t: 'Acknowledge the concern first, then ask one clarifying question before you respond.', s: 'src-doc-3', e: 'e1' }, { t: 'Work out which of the four common objections you are hearing: price, timing, trust or need.', s: 'src-doc-3', e: 'e2' }, { t: 'Treat a price objection as a value question and restate the outcome before discussing cost.', s: 'src-yt-2', e: 'e1' }, { t: 'Offer a smaller scope instead of a lower rate.', s: 'src-yt-2', e: 'e2' }, { t: 'For timing objections, propose a smaller first phase with a clear start date.', s: 'src-doc-3', e: 'e3' }],
+    followups: ['What negotiation strategies appear in my knowledge base?', 'What are the discount rules?', 'Compare the advice in two different sources.'] },
+  { id: 'k-price', strong: ['pricing', 'discount', 'discounts', 'tier', 'tiers', 'packages'], weak: ['price', 'quote', 'rate', 'cost', 'rules'],
+    intros: ['Your pricing material sets out the following rules:', 'This is how pricing and discounts are described in your sources:'],
+    points: [{ t: 'Projects are quoted in three tiers (Essential, Growth and Complete), each with fixed deliverables.', s: 'src-doc-1', e: 'e1' }, { t: 'Present the middle tier first, because most clients choose the reference option.', s: 'src-doc-1', e: 'e3' }, { t: 'A discount above 10% requires a longer contract, upfront payment or reduced scope.', s: 'src-doc-1', e: 'e2' }, { t: 'In the retail rollout negotiation, a 5% reduction was linked to a 12-month commitment.', s: 'src-conv-1', e: 'e2' }, { t: 'After stating a price, pause rather than justify it.', s: 'src-yt-2', e: 'e3' }],
+    followups: ['How should I handle a price objection?', 'What happens when a client asks for extra work?'] },
+  { id: 'k-onb', strong: ['onboarding', 'onboard', 'kickoff', 'new client'], weak: ['welcome', 'first week', 'start'],
+    intros: ['Your onboarding guide describes the first week with a new client:', 'According to your sources, onboarding has these steps:'],
+    points: [{ t: 'Send the welcome email and access checklist within one business day of the signed agreement.', s: 'src-doc-2', e: 'e1' }, { t: 'Hold a kickoff call in week one to confirm goals, the communication channel and the first milestone date.', s: 'src-doc-2', e: 'e2' }, { t: 'Share one project summary document so everyone works from the same scope.', s: 'src-doc-2', e: 'e3' }, { t: 'Keep a fixed update schedule so the client is never surprised.', s: 'src-yt-4', e: 'e1' }],
+    followups: ['How do I prepare a discovery call?', 'How do we keep long-term client relationships?'] },
+  { id: 'k-sum', strong: ['saved videos', 'my videos', 'videos', 'main ideas'], weak: ['summarize', 'summarise', 'summary', 'video', 'youtube'],
+    intros: ['Here are the main ideas from the videos in your knowledge base:', 'Your saved videos cover four themes:'],
+    points: [{ t: 'Negotiation: set an objective, an ideal outcome and a walk-away point in advance.', s: 'src-yt-1', e: 'e1' }, { t: 'Price objections: return to the outcome the client is buying before talking about cost.', s: 'src-yt-2', e: 'e1' }, { t: 'Discovery calls: confirm budget range, decision makers and deadline before proposing anything.', s: 'src-yt-3', e: 'e2' }, { t: 'Client relationships: share progress on a fixed schedule.', s: 'src-yt-4', e: 'e1' }],
+    followups: ['What negotiation strategies appear in my knowledge base?', 'How do I prepare a discovery call?'] },
+  { id: 'k-cmp', strong: ['compare', 'comparison', 'two different sources', 'difference between'], weak: ['advice', 'sources', 'versus', 'differ'],
+    intros: ['Two of your sources cover price conversations: the video "Handling Price Objections Without Discounting" and the Objection Handling Handbook. They agree on the principle and differ in emphasis:', 'Comparing the price-objection video with the Objection Handling Handbook:'],
+    points: [{ t: 'The video focuses on value: restate the outcome before discussing cost.', s: 'src-yt-2', e: 'e1' }, { t: 'The handbook focuses on process: acknowledge, then ask one clarifying question.', s: 'src-doc-3', e: 'e1' }, { t: 'The video recommends reducing scope rather than rate.', s: 'src-yt-2', e: 'e2' }, { t: 'The handbook suggests a smaller first phase when the concern is timing.', s: 'src-doc-3', e: 'e3' }],
+    followups: ['What does my knowledge base say about customer objections?', 'What are the discount rules?'] },
+  { id: 'k-scope', strong: ['scope change', 'change request', 'revision', 'revisions', 'refund', 'refunds', 'extra work', 'scope creep'], weak: ['scope', 'policy', 'extra'],
+    intros: ['Your policy notes and one client thread cover scope changes:', 'Here is how your sources handle revisions and extra work:'],
+    points: [{ t: 'Work outside the agreed scope goes through a written change request with its own price and timeline.', s: 'src-txt-3', e: 'e2' }, { t: 'Each milestone includes two rounds of revisions, and further rounds are quoted separately.', s: 'src-txt-3', e: 'e1' }, { t: 'When a client asked for an extra reporting module, the reply was a change request with cost and a one-week extension.', s: 'src-conv-2', e: 'e1' }, { t: 'The client approved that change in writing before work started.', s: 'src-conv-2', e: 'e2' }, { t: 'Refunds apply to milestones that have not started.', s: 'src-txt-3', e: 'e3' }],
+    followups: ['What are the discount rules?', 'How do we onboard a new client?'] },
+  { id: 'k-disc', strong: ['discovery call', 'discovery', 'first call', 'qualify'], weak: ['call', 'checklist', 'agenda', 'prepare'],
+    intros: ['Your sources describe a structured discovery call:', 'For discovery calls, your knowledge base recommends:'],
+    points: [{ t: 'Agree the agenda and time first, then let the client describe the problem in their own words.', s: 'src-yt-3', e: 'e1' }, { t: 'Confirm budget range, decision makers and deadline before proposing anything.', s: 'src-yt-3', e: 'e2' }, { t: 'Cover the checklist: goal, current tools, budget range, decision maker, deadline and success measure.', s: 'src-txt-2', e: 'e1' }, { t: 'Close by summarising next steps and owners.', s: 'src-yt-3', e: 'e3' }, { t: 'Send a written recap within 24 hours.', s: 'src-txt-2', e: 'e2' }],
+    followups: ['How do we onboard a new client?', 'What negotiation strategies appear in my knowledge base?'] },
+  { id: 'k-rel', strong: ['retention', 'long-term', 'relationship', 'relationships', 'repeat clients'], weak: ['loyal', 'trust', 'stay'],
+    intros: ['One video in your knowledge base covers long-term client relationships:', 'On keeping clients long term, your sources say:'],
+    points: [{ t: 'Share progress on a fixed schedule, including when there is nothing new, so clients are never surprised.', s: 'src-yt-4', e: 'e1' }, { t: 'Review outcomes together at the end of each project and ask what to change next time.', s: 'src-yt-4', e: 'e2' }],
+    followups: ['How do we onboard a new client?'] },
+  { id: 'k-svc', strong: ['services', 'delivery time', 'what do we offer', 'how long'], weak: ['offer', 'deliver', 'company', 'provide'],
+    intros: ['Your company FAQ describes services and timing:', 'From the Company FAQ and Service Overview:'],
+    points: [{ t: 'Services include AI chat assistants, web applications and automation for small and mid-sized businesses.', s: 'src-txt-1', e: 'e1' }, { t: 'Typical delivery time is two to six weeks depending on scope.', s: 'src-txt-1', e: 'e2' }],
+    followups: ['What are the pricing tiers?', 'How do we onboard a new client?'] }
+];
+
+const SUGGESTED = ['Summarize the main ideas from my saved videos.', 'What negotiation strategies appear in my knowledge base?', 'Compare the advice in two different sources.', 'What does my knowledge base say about customer objections?'];
+
+const ACTIVITY = [
+  { icon: 'message-square', text: 'Opened the conversation "Negotiation strategies in my knowledge base"', at: ago(0, 2) },
+  { icon: 'play-circle', text: 'Viewed the YouTube source "Preparing for a Customer Negotiation"', at: ago(0, 6) },
+  { icon: 'file-text', text: 'Reviewed a citation from "Pricing Playbook 2026"', at: ago(1, 3) },
+  { icon: 'search', text: 'Searched knowledge sources for "onboarding"', at: ago(2, 1) },
+  { icon: 'messages-square', text: 'Viewed "Call notes: retail rollout negotiation"', at: ago(4) }
+];
+const NOTIFS = [
+  { icon: 'file-text', text: '"Pricing Playbook 2026" is available in your knowledge sources.', at: ago(2) },
+  { icon: 'clock', text: '"Service Agreement Template" is still processing.', at: ago(0, 5) },
+  { icon: 'sparkles', text: 'Welcome to your demo workspace.', at: ago(6) }
+];
+
+/* ==========================================================================
+   SERVICES  (-> src/services/*.js)  Replace bodies with real HTTP calls later.
+   ========================================================================== */
+const sourceService = {
+  all: () => SOURCES,
+  get: id => SOURCES.find(s => s.id === id),
+  excerpt(sid, eid) { const s = this.get(sid); return s && s.excerpts.find(e => e.id === eid); },
+  query({ q = '', type = 'all', sort = 'newest' } = {}) {
+    const n = q.trim().toLowerCase();
+    let r = SOURCES.filter(s => (type === 'all' || s.type === type) && (!n || [s.title, s.description, s.channelName, s.fileName, ...(s.tags || [])].join(' ').toLowerCase().includes(n)));
+    r = [...r].sort((a, b) => sort === 'title' ? a.title.localeCompare(b.title) : sort === 'oldest' ? new Date(a.addedAt) - new Date(b.addedAt) : new Date(b.addedAt) - new Date(a.addedAt));
+    return r;
+  },
+  counts() { const c = { all: SOURCES.length }; Object.keys(TYPES).forEach(t => c[t] = SOURCES.filter(s => s.type === t).length); return c; },
+  locLabel(s, e) { return s.type === 'youtube' ? e.timestamp : (e.loc || ''); },
+  tsUrl(s, e) { if (s.type !== 'youtube' || !e || !e.timestamp) return s.videoUrl; const [m, sec] = e.timestamp.split(':').map(Number); return s.videoUrl + '&t=' + (m * 60 + sec) + 's'; }
+};
+
+const settingsService = {
+  defaults: { theme: 'light', density: 'comfortable', language: 'English', timezone: 'UTC', enterToSend: true, showCitations: true, defaultScope: 'all', showFollowups: true, notifUpdates: true, notifActivity: false },
+  get() { return { ...this.defaults, ...store.get('settings', {}) }; },
+  set(k, v) { const s = this.get(); s[k] = v; store.set('settings', s); this.apply(); },
+  apply() {
+    const s = this.get();
+    const sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.dataset.theme = s.theme === 'system' ? (sysDark ? 'dark' : 'light') : s.theme;
+    document.documentElement.dataset.density = s.density;
+  }
+};
+
+/* Demo-only authentication. Nothing here is real security. */
+const authService = {
+  session() { let s = null; try { s = JSON.parse(sessionStorage.getItem('nexus:session')); } catch (e) {} return s || store.get('session', null) || mem._sess || null; },
+  _save(sess, remember) { mem._sess = sess; if (remember) store.set('session', sess); else { try { sessionStorage.setItem('nexus:session', JSON.stringify(sess)); } catch (e) {} } },
+  async login(email, password, remember) {
+    await wait(700);
+    if (email.toLowerCase() !== DEMO.email || password !== DEMO.password) return { ok: false, error: 'That email and password do not match the demo account.' };
+    this._save({ email: DEMO.email, at: new Date().toISOString() }, remember);
+    return { ok: true };
+  },
+  async register({ name, email, code }) {
+    await wait(800);
+    if (code.trim().toUpperCase() !== DEMO.invite) return { ok: false, field: 'r-code', error: 'This invitation code is not valid in the demo.' };
+    store.set('user', { ...MOCK_USER, name, email, createdAt: new Date().toISOString() });
+    this._save({ email, at: new Date().toISOString() }, true);
+    return { ok: true };
+  },
+  logout() { delete mem._sess; store.del('session'); try { sessionStorage.removeItem('nexus:session'); } catch (e) {} },
+  user: () => ({ ...MOCK_USER, ...store.get('user', {}) }),
+  saveUser(u) { store.set('user', u); }
+};
+
+const chatService = {
+  match(text) {
+    const q = ' ' + text.toLowerCase().replace(/[^a-z0-9\- ]+/g, ' ') + ' ';
+    const has = k => q.includes(' ' + k + ' ') || (k.includes(' ') && q.includes(k));
+    let best = null, top = 0;
+    KNOWLEDGE.forEach(k => { const sc = k.strong.filter(has).length * 2 + k.weak.filter(has).length; if (sc > top) { top = sc; best = k; } });
+    return top >= 2 ? best : null;
+  },
+  compose(kb, scope = 'all', variant = 0) {
+    let pts = kb.points.filter(p => scope === 'all' || sourceService.get(p.s).type === scope);
+    if (!pts.length) return null;
+    if (variant % 2) pts = [...pts].reverse();
+    const cites = [];
+    const lines = pts.map(p => { let i = cites.findIndex(c => c.s === p.s && c.e === p.e); if (i < 0) { cites.push({ s: p.s, e: p.e }); i = cites.length - 1; } return `- ${p.t} [${i + 1}]`; });
+    return { text: kb.intros[variant % kb.intros.length] + '\n\n' + lines.join('\n'), cites };
+  },
+  build(text, scope = 'all', variant = 0, kbId = null) {
+    const kb = kbId ? KNOWLEDGE.find(k => k.id === kbId) : this.match(text);
+    const ans = kb && this.compose(kb, scope, variant);
+    if (!ans) return { role: 'ai', text: FALLBACK_TEXT, cites: [], fallback: true, scope, kb: null, variant: 0 };
+    return { role: 'ai', text: ans.text, cites: ans.cites, fallback: false, scope, kb: kb.id, variant };
+  },
+  async reply(text, scope, variant, kbId) { await wait(900 + Math.random() * 600); return this.build(text, scope, variant, kbId); }
+};
+
+const conversationService = {
+  _seed() {
+    const mk = (id, title, d, h, qa) => {
+      let t = Date.now() - d * DAY - h * 36e5 - qa.length * 12e4;
+      const messages = [];
+      qa.forEach(([q, kb], i) => {
+        messages.push({ id: id + '-u' + i, role: 'user', text: q, at: new Date(t).toISOString() }); t += 4e4;
+        messages.push({ id: id + '-a' + i, at: new Date(t).toISOString(), feedback: null, ...chatService.build(q, 'all', 0, kb) }); t += 8e4;
+      });
+      return { id, title, updatedAt: messages[messages.length - 1].at, messages };
+    };
+    return [
+      mk('conv-1', 'Negotiation strategies in my knowledge base', 0, 2, [['What negotiation strategies appear in my knowledge base?', 'k-neg'], ['What are the discount rules?', 'k-price']]),
+      mk('conv-2', 'Handling customer objections', 1, 1, [['What does my knowledge base say about customer objections?', 'k-obj']]),
+      mk('conv-3', 'Summary of saved videos', 2, 4, [['Summarize the main ideas from my saved videos.', 'k-sum']]),
+      mk('conv-4', 'Onboarding a new client', 4, 0, [['How do we onboard a new client?', 'k-onb']]),
+      mk('conv-5', 'Comparing two sources on price conversations', 6, 3, [['Compare the advice in two different sources.', 'k-cmp']]),
+      mk('conv-6', 'Scope changes and revisions', 9, 0, [['What happens when a client asks for extra work?', 'k-scope']]),
+      mk('conv-7', 'Discovery call preparation', 15, 2, [['How do I prepare a discovery call?', 'k-disc']]),
+      mk('conv-8', 'Competitor market share', 24, 0, [["What is our competitors' market share this year?", null]])
+    ];
+  },
+  all() { let c = store.get('convs', null); if (!c) { c = this._seed(); store.set('convs', c); } return [...c].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)); },
+  _save(list) { store.set('convs', list); },
+  get(id) { return this.all().find(c => c.id === id); },
+  create(firstText) { const list = this.all(); const c = { id: uid('conv'), title: firstText.length > 56 ? firstText.slice(0, 56).trim() + '…' : firstText, updatedAt: new Date().toISOString(), messages: [] }; list.push(c); this._save(list); return c; },
+  update(id, fn) { const list = this.all(); const c = list.find(x => x.id === id); if (!c) return null; fn(c); this._save(list); return c; },
+  addMessage(id, msg) { return this.update(id, c => { const at = new Date().toISOString(); c.messages.push({ id: uid('m'), at, feedback: null, ...msg }); c.updatedAt = at; }); },
+  rename(id, title) { return this.update(id, c => { c.title = title; }); },
+  remove(id) { this._save(this.all().filter(c => c.id !== id)); },
+  clear() { this._save([]); },
+  reset() { store.del('convs'); },
+  findMsg(mid) { for (const c of this.all()) { const m = c.messages.find(x => x.id === mid); if (m) return { c, m }; } return {}; },
+  preview(c) { const m = c.messages[c.messages.length - 1]; return m ? m.text.replace(/\[\d+\]/g, '').replace(/\n+- /g, ' ').replace(/\s+/g, ' ').slice(0, 130) : 'No messages yet'; },
+  sourceIds(c) { return [...new Set(c.messages.flatMap(m => (m.cites || []).map(x => x.s)))]; },
+  query({ q = '', date = 'all', type = 'all', sort = 'newest' } = {}) {
+    const n = q.trim().toLowerCase(); const lim = { today: 1, '7': 7, '30': 30 }[date];
+    let r = this.all().filter(c => (!n || (c.title + ' ' + c.messages.map(m => m.text).join(' ')).toLowerCase().includes(n))
+      && (!lim || Date.now() - new Date(c.updatedAt) < lim * DAY)
+      && (type === 'all' || this.sourceIds(c).some(id => sourceService.get(id).type === type)));
+    if (sort === 'oldest') r.reverse(); else if (sort === 'title') r.sort((a, b) => a.title.localeCompare(b.title));
+    return r;
+  }
+};
+
+/* ==========================================================================
+   UI STATE + COMMON UI  (-> hooks + components/common)
+   ========================================================================== */
+const ui = { redirect: null, notice: null, draft: '', scope: settingsService.get().defaultScope, panel: null, lastPath: null, loaded: {}, annClosed: store.get('annClosed', false),
+  hist: { q: '', date: 'all', type: 'all', sort: 'newest', view: 'list' }, src: { q: '', type: 'all', sort: 'newest', shown: 6 }, setTab: 'general', sideQ: '' };
+const pending = new Set();
+const root = $('#root'), overlay = $('#overlay');
+
+function toast(msg, kind = 'ok') {
+  const el = document.createElement('div'); el.className = 'toast ' + kind;
+  el.innerHTML = ic(kind === 'err' ? 'alert-circle' : kind === 'info' ? 'info' : 'check-circle') + `<span>${esc(msg)}</span>`;
+  $('#toasts').appendChild(el); icons(); setTimeout(() => el.remove(), 3200);
+}
+let modalOk = null, lastFocus = null;
+function openModal({ title, body, ok = 'Confirm', cancel = 'Cancel', danger = false, onOk, hideCancel = false }) {
+  lastFocus = document.activeElement; modalOk = onOk || null;
+  overlay.innerHTML = `<div class="backdrop" data-action="modal-bg"><form class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title" data-form="modal">
+    <h2 id="m-title">${esc(title)}</h2>${body}
+    <div class="modal-f">${hideCancel ? '' : `<button type="button" class="btn btn-out" data-action="modal-close">${esc(cancel)}</button>`}<button class="btn ${danger ? 'btn-danger' : 'btn-pri'}">${esc(ok)}</button></div></form></div>`;
+  icons(); const f = $('.modal input, .modal button', overlay); f && f.focus(); if (f && f.select) f.select();
+}
+function closeModal() { overlay.innerHTML = ''; modalOk = null; lastFocus && lastFocus.focus && lastFocus.focus(); }
+const confirmDialog = (title, text, ok, onOk) => openModal({ title, body: `<p>${esc(text)}</p>`, ok, danger: true, onOk });
+const promptDialog = (title, label, value, onOk) => openModal({ title, body: `<div class="field" style="margin:12px 0 0"><label for="m-in">${esc(label)}</label><input class="input" id="m-in" value="${esc(value)}" maxlength="80"><p class="err-msg" id="m-in-err" role="alert"></p></div>`, ok: 'Save', onOk: () => { const v = $('#m-in').value.trim(); if (!v) { setErr('m-in', 'Enter a title.'); return false; } onOk(v); } });
+function closeMenus() { $$('.menu:not([hidden])').forEach(m => { m.hidden = true; const b = m.parentElement.querySelector('[aria-expanded]'); b && b.setAttribute('aria-expanded', 'false'); }); }
+function setErr(id, msg) { const i = $('#' + id), e = $('#' + id + '-err'); if (i) i.setAttribute('aria-invalid', msg ? 'true' : 'false'); if (e) e.textContent = msg || ''; return !msg; }
+function btnLoad(btn, on) { if (!btn) return; btn.classList.toggle('loading', on); btn.disabled = on; }
+const emptyState = (icon, title, text, action = '') => `<div class="empty"><div class="eico">${ic(icon)}</div><h3>${esc(title)}</h3><p>${esc(text)}</p>${action}</div>`;
+const typeBadge = s => `<span class="badge tbadge t-${s.type}">${ic(TYPES[s.type].icon)}${TYPES[s.type].label}</span>`;
+const statusBadge = s => s.status === 'indexed' ? `<span class="badge ok">${ic('check-circle')}Indexed (demo)</span>` : `<span class="badge warn">${ic('clock')}Processing (demo)</span>`;
+const field = o => `<div class="field"><label for="${o.id}">${o.label}</label><div class="in-wrap">${o.icon ? ic(o.icon, 'in-ic') : ''}<input class="input ${o.icon ? 'has-ic' : ''}" id="${o.id}" name="${o.id}" type="${o.type || 'text'}" value="${esc(o.value || '')}" placeholder="${esc(o.ph || '')}" autocomplete="${o.ac || 'off'}" aria-describedby="${o.id}-err">${o.type === 'password' ? `<button type="button" class="in-btn" data-action="toggle-pw" data-for="${o.id}" aria-label="Show password">${ic('eye')}</button>` : ''}</div><p class="err-msg" id="${o.id}-err" role="alert"></p>${o.help ? `<p class="help">${o.help}</p>` : ''}</div>`;
+const opts = (list, cur) => list.map(o => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`; }).join('');
+const SCOPES = [['all', 'All sources'], ['youtube', 'YouTube'], ['document', 'Documents'], ['text', 'Text'], ['conversation', 'Conversations']];
+const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+/* ==========================================================================
+   ROUTER  (-> src/routes + React Router DOM)
+   ========================================================================== */
+function parse() { const h = (location.hash.replace(/^#/, '') || '/').split('?')[0]; const path = h.length > 1 ? h.replace(/\/$/, '') : h; return { path, parts: path.split('/').filter(Boolean) }; }
+function go(path) { if (location.hash === '#' + path) render(); else location.hash = path; }
+function render() {
+  const r = parse(), p = r.parts, authed = !!authService.session();
+  let html;
+  try {
+    if (p[0] === 'app') {
+      if (!authed) { ui.redirect = r.path; ui.notice = 'Sign in to open your workspace.'; return go('/login'); }
+      html = appRoute(p);
+    } else if (r.path === '/') html = pageLanding();
+    else if (r.path === '/login') { if (authed) return go('/app'); html = pageLogin(); }
+    else if (r.path === '/register') { if (authed) return go('/app'); html = pageRegister(); }
+    else if (r.path === '/forgot-password') html = pageForgot();
+    else if (r.path === '/privacy' || r.path === '/terms') html = pageLegal(r.path.slice(1));
+    else html = page404();
+  } catch (e) {
+    console.error(e);
+    html = `<div class="nf"><div>${emptyState('alert-triangle', 'Something went wrong', 'This screen could not be displayed. Reload the page or go back to the start.', `<a class="btn btn-pri" href="#/">Go to home</a>`)}</div></div>`;
+  }
+  root.innerHTML = html; overlay.innerHTML = ''; afterRender(r);
+}
+function afterRender(r) {
+  icons();
+  const changed = ui.lastPath !== r.path; ui.lastPath = r.path;
+  if (changed) { window.scrollTo(0, 0); const c = $('.content'); c && (c.scrollTop = 0); }
+  const ta = $('#comp-t'); if (ta) { ta.value = ui.draft; syncComposer(); if (r.parts[1] === 'chat' && window.innerWidth > 900) ta.focus(); }
+  const ms = $('#msgs'); if (ms) ms.scrollTop = ms.scrollHeight;
+  if (r.path === '/') initLanding();
+  const titles = { '/': '', '/login': 'Sign in', '/register': 'Register', '/app': 'Overview', '/app/history': 'Chat history', '/app/sources': 'Knowledge sources', '/app/profile': 'Profile', '/app/settings': 'Settings' };
+  const t = titles[r.path] ?? (r.parts[1] === 'chat' ? 'Chat' : r.parts[1] === 'sources' ? 'Source' : '');
+  document.title = (t ? t + ' · ' : '') + BRAND.name;
+}
+window.addEventListener('hashchange', () => { ui.panel = null; render(); });
+
+/* ==========================================================================
+   LANDING PAGE  (-> pages/landing + components/landing/*)
+   ========================================================================== */
+const NAV = [['product', 'Product'], ['features', 'Features'], ['how', 'How it works'], ['sources', 'Knowledge sources']];
+function landingNav() {
+  return `<header class="nav" id="lnav"><div class="wrapx nav-in">
+    <a class="brand" href="#/" aria-label="${BRAND.name} home">${logo(30)}<span>${BRAND.name}</span></a>
+    <nav class="nav-links" aria-label="Primary">${NAV.map(([id, l]) => `<button data-action="scroll" data-target="${id}">${l}</button>`).join('')}</nav>
+    <div class="nav-cta"><a class="btn btn-sm btn-glass" href="#/login">Sign in</a><a class="btn btn-sm btn-white" href="#/register">Get started</a></div>
+    <button class="nav-burger" data-action="lnav-toggle" aria-label="Open menu" aria-expanded="false">${ic('menu')}</button></div>
+    <div class="mnav">${NAV.map(([id, l]) => `<button class="l" data-action="scroll" data-target="${id}">${l}</button>`).join('')}
+      <a class="btn btn-glass block" href="#/login">Sign in</a><a class="btn btn-white block" href="#/register">Get started</a></div></header>`;
+}
+function heroPreview() {
+  return `<div class="pvw" role="img" aria-label="Preview of the ${BRAND.name} chat workspace showing a question, an answer and two cited sources">
+    <div class="pv" aria-hidden="true">
+      <div class="pv-bar"><span class="dots"><i></i><i></i><i></i></span><b>Negotiation prep</b><span class="badge">${ic('quote')}2 sources</span></div>
+      <div class="pv-body">
+        <div class="pv-q">What should I prepare before a pricing negotiation?</div>
+        <div class="pv-a"><span>${logo(28)}</span><span class="pv-typing"><i></i><i></i><i></i></span>
+          <div class="pv-ans"><p>Your sources point to two things. Write down your objective and walk-away point before the call <span class="c">1</span>, and link any discount above 10% to a longer contract or a smaller scope <span class="c">2</span>.</p>
+            <div class="pv-cites">
+              <div class="pv-cite"><span class="sicon t-youtube">${ic('play-circle')}</span><div><b>Preparing for a Customer Negotiation</b><span>YouTube, at 02:15</span></div></div>
+              <div class="pv-cite"><span class="sicon t-document">${ic('file-text')}</span><div><b>Pricing Playbook 2026</b><span>Document, page 9</span></div></div>
+            </div></div></div>
+      </div>
+      <div class="pv-comp"><span>Ask about your knowledge</span><span>${ic('arrow-up')}</span></div>
+    </div>
+    <div class="pv-float" aria-hidden="true"><b>${ic('clock')}Transcript at 02:15</b>"Write down your objective, your ideal outcome, and the point at which you would walk away."</div>
+  </div>`;
+}
+function pageLanding() {
+  const feats = [['quote', 'Source-Grounded AI', 'Answers are based on indexed knowledge, with clear references to supporting content.'], ['play-circle', 'YouTube Knowledge', 'Explore channel videos and transcripts in a searchable knowledge workspace.'], ['file-text', 'Your Documents', 'Bring text documents and business materials together.'], ['search', 'Evidence You Can Explore', 'Review the source behind an answer instead of relying on an unsupported claim.'], ['messages-square', 'Focused Conversations', 'Keep related questions organized in separate chat sessions.'], ['lock', 'Controlled Access', 'A private workspace designed for authorized users and invitation-based access.']];
+  const kinds = [['youtube', 'play-circle', 'YouTube videos and transcripts', 'Channel videos with timestamped transcript segments.'], ['document', 'file-text', 'Business documents', 'Playbooks, guides and handbooks.'], ['text', 'align-left', 'Text-based resources', 'FAQs, checklists and policy notes.'], ['conversation', 'messages-square', 'Client conversations', 'Call notes and email threads.'], ['conversation', 'scale', 'Negotiation knowledge', 'What was asked, offered and agreed.'], ['document', 'folder', 'Internal reference material', 'The things your team looks up every week.']];
+  const faqs = [
+    ['What is ' + BRAND.name + '?', BRAND.name + ' is an AI workspace for asking questions about your own knowledge: videos, documents, text resources and client conversations. Answers point back to the sources they came from.'],
+    ['Which knowledge sources can it use?', 'The platform is designed for YouTube videos and transcripts, documents, text resources and client conversation records. This preview runs on a built-in set of sample sources. Live ingestion is added when the server is connected.'],
+    ['Does it answer from general AI knowledge?', 'No. The assistant is designed to answer from the indexed knowledge only. When the available sources do not cover a question, it says so instead of guessing.'],
+    ['Can I review the sources behind an answer?', 'Yes. Each supported answer lists its sources. Select a citation to read the exact excerpt, and for videos, open the timestamp.'],
+    ['How do I get access?', 'Access is by invitation. You need an invitation code from a workspace administrator to create an account.'],
+    ['Can I upload my own documents?', 'Document upload and indexing are planned and depend on the server integration. The current preview shows how uploaded documents will appear, using sample files.'],
+    ['Can my conversations be saved?', 'In this preview, conversations are saved in your browser on this device. Saving to your account across devices arrives with the server integration.']
+  ];
+  return `<div class="dark-zone">
+    ${ui.annClosed ? '' : `<div class="ann" id="ann"><span>Meet a smarter way to work with your knowledge.</span><a href="#" data-action="scroll" data-target="product">Explore the platform</a><button data-action="ann-close" aria-label="Dismiss announcement">${ic('x')}</button></div>`}
+    ${landingNav()}
+    <section class="hero"><div class="wrapx hero-g">
+      <div><p class="eyebrow">YOUR KNOWLEDGE. ONE INTELLIGENT WORKSPACE.</p>
+        <h1>Answers grounded in what you actually know.</h1>
+        <p class="lead">Bring your videos, documents, and business knowledge together in one AI workspace. Ask questions, explore sources, and find answers backed by your own information.</p>
+        <div class="hero-cta"><a class="btn btn-lg btn-pri" href="#/register">Start exploring</a><button class="btn btn-lg btn-glass" data-action="scroll" data-target="how">See how it works</button></div>
+        <p class="micro">Source-grounded answers · Your knowledge, organized · Built for focused work</p></div>
+      ${heroPreview()}
+    </div></section></div>
+
+  <main id="main">
+  <div class="strip"><div class="wrapx"><p>Designed for research, internal knowledge, and better-informed decisions.</p></div></div>
+
+  <section class="sec" id="features"><div class="wrapx">
+    <div class="sec-h rv"><h2>Built around the evidence, not around the chatbot</h2><p>Every part of the workspace keeps an answer connected to where it came from.</p></div>
+    <div class="feat-g">${feats.map(f => `<article class="feat"><div class="fi">${ic(f[0])}</div><h3>${f[1]}</h3><p>${f[2]}</p></article>`).join('')}</div>
+  </div></section>
+
+  <section class="sec alt" id="how"><div class="wrapx">
+    <div class="sec-h rv"><h2>From scattered knowledge to a checked answer in three steps</h2></div>
+    <div class="steps">
+      <div class="step"><div class="num"></div><h3>Bring your knowledge together.</h3><p>Videos, documents, and text resources are organized into a searchable knowledge base.</p></div>
+      <div class="step"><div class="num"></div><h3>Ask a question.</h3><p>Use natural language to explore the information you have available.</p></div>
+      <div class="step"><div class="num"></div><h3>Review the evidence.</h3><p>Read the response and inspect the sources that support it.</p></div>
+    </div></div></section>
+
+  <section class="sec" id="sources"><div class="wrapx">
+    <div class="sec-h rv"><h2>One place for everything your team already knows</h2><p>Six kinds of knowledge, searched together.</p></div>
+    <div class="kinds">${kinds.map(k => `<div class="kind"><span class="sicon t-${k[0]}">${ic(k[1])}</span><div><h3>${k[2]}</h3><p>${k[3]}</p></div></div>`).join('')}</div>
+    <div class="note">${ic('info')}<span>This preview uses sample sources. Live YouTube sync and document ingestion are server features and are not connected yet.</span></div>
+  </div></section>
+
+  <section class="sec alt" id="grounding"><div class="wrapx">
+    <div class="sec-h rv"><h2>It tells you where an answer came from, and when it has none</h2><p>The assistant is designed to stay inside your indexed knowledge. No system is perfect, so every answer comes with sources you can check yourself.</p></div>
+    <div class="ground">
+      <div class="gcard"><h3>${ic('check-circle')}Answer with evidence</h3>
+        <p class="gq">How should we respond to a discount request?</p>
+        <p class="gbody">Link any discount above 10% to a longer contract or reduced scope <span class="c">1</span>. In the retail rollout call, a 5% reduction was tied to a 12-month commitment <span class="c">2</span>, and the video advice is to trade concessions rather than give them away <span class="c">3</span>.</p>
+        <div class="gref"><span class="c">1</span><b>Pricing Playbook 2026</b><span>Document, page 9</span></div>
+        <div class="gref"><span class="c">2</span><b>Call notes: retail rollout negotiation</b><span>Conversation</span></div>
+        <div class="gref"><span class="c">3</span><b>Preparing for a Customer Negotiation</b><span>Video, 08:10</span></div></div>
+      <div class="gcard no"><h3>${ic('alert-circle')}When evidence is unavailable</h3>
+        <p class="gq">What is our competitors' market share this year?</p>
+        <div class="box"><p>The indexed knowledge does not contain enough information to answer this.</p><p style="margin-top:10px">Try searching a different topic, or add a source that covers it.</p></div></div>
+    </div></div></section>
+
+  <section class="sec" id="product"><div class="wrapx">
+    <div class="sec-h rv"><h2>A workspace for long, careful questions</h2><p>History on the left, the conversation in the middle, the evidence on the right.</p></div>
+    <div class="show" role="img" aria-label="Application preview with conversation history, chat and a source drawer"><div class="show-side" aria-hidden="true">
+        <span class="brand">${logo(22)}<span>${BRAND.name}</span></span>
+        <div class="it">${ic('layout-dashboard')}Overview</div><div class="it on">${ic('plus')}New chat</div><div class="it">${ic('library')}Knowledge sources</div>
+        <small>Recent</small><div class="it on">Negotiation strategies</div><div class="it">Handling objections</div><div class="it">Summary of saved videos</div>
+        <div class="u"><span class="avatar">AM</span>Alex Morgan<div class="pop"><div>${ic('user')}Profile</div><div>${ic('settings')}Settings</div><div>${ic('log-out')}Sign out</div></div></div></div>
+      <div class="show-main" aria-hidden="true"><h4>Negotiation strategies in my knowledge base</h4>
+        <div class="q">What negotiation strategies appear in my knowledge base?</div>
+        <div class="a"><span>${logo(26)}</span><div><p>Your knowledge base describes a consistent approach: define your walk-away point first <span class="c">1</span>, ask questions early <span class="c">2</span>, and trade concessions instead of giving them away <span class="c">3</span>.</p>
+          <div class="pv-cites"><div class="pv-cite"><span class="sicon t-youtube">${ic('play-circle')}</span><div><b>Preparing for a Customer Negotiation</b><span>YouTube, 3 excerpts</span></div></div><div class="pv-cite"><span class="sicon t-conversation">${ic('messages-square')}</span><div><b>Call notes: retail rollout</b><span>Conversation</span></div></div></div></div></div>
+        <div class="comp-mini">Ask a follow-up</div></div>
+      <div class="show-dr" aria-hidden="true"><h4>Source details</h4><span class="badge tbadge t-youtube">${ic('play-circle')}YouTube</span>
+        <p style="font-weight:600;margin-top:10px">Preparing for a Customer Negotiation</p>
+        <div class="ex">"Trade concessions instead of giving them away."</div><p class="muted" style="font-size:12.5px">Transcript at 08:10</p></div>
+    </div></div></section>
+
+  <section class="sec alt" id="faq"><div class="wrapx">
+    <div class="sec-h rv" style="margin-inline:auto;text-align:center"><h2>Questions people ask first</h2></div>
+    <div class="faq">${faqs.map((f, i) => `<div class="faq-i"><button class="faq-q" data-action="faq" aria-expanded="${i === 0}" aria-controls="fa-${i}"><span>${esc(f[0])}</span>${ic('chevron-down')}</button><div class="faq-a" id="fa-${i}"><div><p>${esc(f[1])}</p></div></div></div>`).join('')}</div>
+  </div></section>
+  </main>
+
+  <section class="dark-zone cta"><div class="wrapx"><h2>Make your knowledge more useful.</h2><p>Bring your information together and make it easier to explore.</p>
+    <div class="hero-cta"><a class="btn btn-lg btn-pri" href="#/register">Get started</a><a class="btn btn-lg btn-glass" href="#/login">Sign in</a></div></div></section>
+  ${footer()}`;
+}
+function footer() {
+  return `<footer class="foot"><div class="wrapx"><div class="foot-g">
+    <div><span class="brand">${logo(28)}<span>${BRAND.name}</span></span><p style="max-width:34ch">An AI workspace for asking questions about your own videos, documents and business knowledge.</p></div>
+    <div><h4>Product</h4><ul><li><button data-action="scroll" data-target="product">Product</button></li><li><button data-action="scroll" data-target="features">Features</button></li><li><button data-action="scroll" data-target="how">How it works</button></li><li><button data-action="scroll" data-target="faq">FAQ</button></li></ul></div>
+    <div><h4>Access</h4><ul><li><a href="#/login">Sign in</a></li><li><a href="#/register">Register with an invitation</a></li></ul></div>
+    <div><h4>Legal</h4><ul><li><a href="#/privacy">Privacy Policy</a></li><li><a href="#/terms">Terms of Service</a></li></ul></div>
+  </div><div class="foot-b"><span>© ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.</span><span>Frontend preview with sample data.</span></div></div></footer>`;
+}
+function initLanding() {
+  const nav = $('#lnav');
+  const onS = () => nav && nav.classList.toggle('scrolled', window.scrollY > 24);
+  window.onscroll = onS; onS();
+  if ('IntersectionObserver' in window) { const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .2 }); $$('.rv').forEach(el => io.observe(el)); }
+  else $$('.rv').forEach(el => el.classList.add('in'));
+}
+function pageLegal(kind) {
+  const P = kind === 'privacy';
+  return `<div class="dark-zone">${landingNav()}</div><main id="main" class="legal"><a class="link" href="#/">${ic('arrow-left')} Back to home</a>
+    <h1>${P ? 'Privacy Policy' : 'Terms of Service'}</h1>
+    <div class="alert warn" style="margin-top:14px">${ic('alert-triangle')}<span>Placeholder page for the frontend preview. This is not legal advice and does not replace a finalized ${P ? 'privacy policy' : 'terms of service'}.</span></div>
+    ${P ? `<h2>What this preview stores</h2><p>This preview has no server. Demo conversations, profile edits and preferences are stored in your browser on this device only.</p><h2>What it does not collect</h2><p>No information is sent to a server by this preview, and no real account is created.</p><h2>Removing demo data</h2><p>You can clear local demo conversations from Settings, under Privacy and data, or by clearing site data in your browser.</p>`
+      : `<h2>Preview status</h2><p>This is a demonstration of the client interface. Sign-in, invitations and AI responses are simulated.</p><h2>Sample content</h2><p>Sources, transcripts and answers shown in the preview are illustrative sample content.</p><h2>Final terms</h2><p>Final terms will be published before the service is made available with a connected server.</p>`}
+  </main>${footer()}`;
+}
+function page404() { return `<main id="main" class="nf"><div><div class="code">404</div><h1 style="font-size:26px;margin:14px 0 8px">This page does not exist</h1><p class="muted" style="margin-bottom:22px">The link may be out of date, or the address was typed incorrectly.</p><div class="hero-cta" style="justify-content:center"><a class="btn btn-pri" href="#/">Go to home</a><a class="btn btn-out" href="#/app">Open workspace</a></div></div></main>`; }
+
+/* ==========================================================================
+   AUTH PAGES  (-> pages/auth + components/auth)
+   ========================================================================== */
+function authLayout(title, sub, body) {
+  return `<div class="auth"><aside class="auth-side dark-zone">
+      <a class="brand" href="#/">${logo(32)}<span>${BRAND.name}</span></a>
+      <div class="mid"><h2>${BRAND.tagline}</h2><p>One workspace for your videos, documents and business knowledge.</p>
+        <ul><li>${ic('check')}Answers that point to their sources</li><li>${ic('check')}Conversations kept in separate sessions</li><li>${ic('check')}Access by invitation only</li></ul></div>
+      <p class="tiny">Demo build. Sign-in is simulated in your browser and is not real security.</p></aside>
+    <main id="main" class="auth-main"><div class="auth-card"><a class="brand m" href="#/">${logo(30)}<span>${BRAND.name}</span></a><h1>${title}</h1><p class="sub">${sub}</p>${body}</div></main></div>`;
+}
+function pageLogin() {
+  const notice = ui.notice; ui.notice = null;
+  return authLayout('Welcome back', 'Sign in to your knowledge workspace.', `
+    ${notice ? `<div class="alert info">${ic('lock')}<span>${esc(notice)}</span></div>` : ''}
+    <div id="form-alert"></div>
+    <form data-form="login" novalidate>
+      ${field({ id: 'l-email', label: 'Email', type: 'email', icon: 'mail', ph: 'you@company.com', ac: 'email' })}
+      ${field({ id: 'l-pw', label: 'Password', type: 'password', icon: 'lock', ph: 'Your password', ac: 'current-password' })}
+      <div class="row" style="justify-content:space-between;margin-bottom:20px"><label class="check"><input type="checkbox" id="l-rem" checked>Remember me</label><a class="link" href="#/forgot-password" style="font-size:14px">Forgot password?</a></div>
+      <button class="btn btn-pri btn-lg block">Sign in</button>
+    </form>
+    <p class="auth-foot">Have an invitation code? <a class="link" href="#/register">Create your account</a></p>
+    <div class="demo-box">Demo account: <code>${DEMO.email}</code> with password <code>${DEMO.password}</code><br><button class="btn btn-sm btn-out" data-action="fill-demo">Fill demo credentials</button></div>`);
+}
+function pageRegister() {
+  return authLayout('Create your account', 'Access is by invitation. You need a valid invitation code to register.', `
+    <div id="form-alert"></div>
+    <form data-form="register" novalidate>
+      ${field({ id: 'r-name', label: 'Full name', icon: 'user', ph: 'Alex Morgan', ac: 'name' })}
+      ${field({ id: 'r-email', label: 'Email', type: 'email', icon: 'mail', ph: 'you@company.com', ac: 'email' })}
+      ${field({ id: 'r-code', label: 'Invitation code', icon: 'key', ph: 'XXXXX-XXXX-XXXX', help: `Development code for this demo: <b>${DEMO.invite}</b>` })}
+      ${field({ id: 'r-pw', label: 'Password', type: 'password', icon: 'lock', ph: 'At least 8 characters', ac: 'new-password' })}
+      ${field({ id: 'r-pw2', label: 'Confirm password', type: 'password', icon: 'lock', ph: 'Repeat your password', ac: 'new-password' })}
+      <div class="field"><label class="check"><input type="checkbox" id="r-terms"><span>I accept the <a class="link" href="#/terms">Terms of Service</a> and <a class="link" href="#/privacy">Privacy Policy</a>.</span></label><p class="err-msg" id="r-terms-err" role="alert"></p></div>
+      <button class="btn btn-pri btn-lg block">Create account</button>
+    </form>
+    <p class="auth-foot">Already registered? <a class="link" href="#/login">Sign in</a></p>
+    <div class="demo-box">Demo registration creates a session in this browser only. Your password is not stored, so after signing out use the demo account to sign in again.</div>`);
+}
+function pageForgot() {
+  return authLayout('Reset your password', 'Enter the email address for your account.', `
+    <div id="form-alert"></div>
+    <form data-form="forgot" novalidate>
+      ${field({ id: 'f-email', label: 'Email', type: 'email', icon: 'mail', ph: 'you@company.com', ac: 'email' })}
+      <button class="btn btn-pri btn-lg block">Send reset link</button>
+    </form>
+    <p class="auth-foot"><a class="link" href="#/login">Back to sign in</a></p>`);
+}
+
+/* ==========================================================================
+   APP SHELL  (-> layouts/AppLayout + components/layout/{Sidebar,AppHeader})
+   ========================================================================== */
+function recentsHTML() {
+  const cur = parse().parts[2], n = ui.sideQ.trim().toLowerCase();
+  const list = conversationService.all().filter(c => !n || c.title.toLowerCase().includes(n)).slice(0, n ? 20 : 6);
+  return list.length ? list.map(c => `<a href="#/app/chat/${c.id}" title="${esc(c.title)}" ${c.id === cur ? 'aria-current="page"' : ''}>${esc(c.title)}</a>`).join('') : `<p class="none">${n ? 'No matching conversations' : 'No conversations yet'}</p>`;
+}
+function shell(crumb, inner, flush = false) {
+  const r = parse(), u = authService.user(), col = store.get('sideCol', false), unread = !store.get('notifRead', false);
+  const nav = [['/app', 'layout-dashboard', 'Overview'], ['/app/history', 'history', 'Chat History'], ['/app/sources', 'library', 'Knowledge Sources'], ['/app/settings', 'settings', 'Settings']];
+  const on = p => p === '/app' ? r.path === '/app' : r.path.startsWith(p);
+  return `<div class="shell ${col ? 'col' : ''}" id="shell">
+    <aside class="side" aria-label="Workspace navigation">
+      <div class="side-top"><a class="brand" href="#/app">${logo(30)}<span>${BRAND.name}</span></a><button class="icon-btn collapse" data-action="side-collapse" aria-label="${col ? 'Expand' : 'Collapse'} sidebar">${ic('panel-left')}</button></div>
+      <nav class="snav" aria-label="Main">
+        <a class="new" href="#/app/chat" data-tip="New Chat" ${r.path === '/app/chat' ? 'aria-current="page"' : ''}>${ic('plus')}<span class="lbl-t">New Chat</span></a>
+        ${nav.map(([p, i, l]) => `<a href="#${p}" data-tip="${l}" ${on(p) ? 'aria-current="page"' : ''}>${ic(i)}<span class="lbl-t">${l}</span></a>`).join('')}
+      </nav>
+      <div class="side-sec"><div class="h"><span>Recent conversations</span></div>
+        <div class="side-search">${ic('search')}<label class="sr" for="side-q">Search conversations</label><input id="side-q" placeholder="Search" value="${esc(ui.sideQ)}" data-input="side-q"></div>
+        <div class="recents" id="recents">${recentsHTML()}</div></div>
+      <div class="side-user"><a href="#/app/profile" data-tip="Profile"><span class="avatar">${esc(initials(u.name))}</span><span class="txt trunc"><b class="trunc">${esc(u.name)}</b><small>${esc(u.role)}</small></span></a>
+        <button class="icon-btn" data-action="logout" aria-label="Sign out" data-tip="Sign out">${ic('log-out')}</button></div>
+    </aside>
+    <div class="scrim" data-action="nav-close"></div>
+    <div class="main">
+      <header class="top">
+        <button class="icon-btn burger" data-action="nav-open" aria-label="Open navigation">${ic('menu')}</button>
+        <div class="crumbs"><span class="root">Workspace</span>${ic('chevron-right')}<b class="trunc">${esc(crumb)}</b></div><span class="grow"></span>
+        <div class="menu-wrap"><button class="icon-btn" data-action="menu" aria-haspopup="true" aria-expanded="false" aria-label="Notifications">${ic('bell')}${unread ? '<span class="dot" id="ndot"></span>' : ''}</button>
+          <div class="menu notif" hidden><div class="nh"><span>Notifications</span><button data-action="notif-read">Mark all as read</button></div>
+            ${NOTIFS.map(n => `<div class="ni"><span class="tl"><span class="tico" style="display:grid">${ic(n.icon)}</span></span><span>${esc(n.text)}<small>${rel(n.at)}, sample notification</small></span></div>`).join('')}</div></div>
+        <div class="menu-wrap"><button class="row gap8" data-action="menu" aria-haspopup="true" aria-expanded="false" aria-label="Account menu" style="padding:4px;border-radius:99px"><span class="avatar">${esc(initials(u.name))}</span></button>
+          <div class="menu" hidden><div style="padding:8px 10px"><b style="font-size:14px">${esc(u.name)}</b><br><small class="muted">${esc(u.email)}</small></div><hr>
+            <a href="#/app/profile">${ic('user')}Profile</a><a href="#/app/settings">${ic('settings')}Settings</a><hr><button class="danger" data-action="logout">${ic('log-out')}Sign out</button></div></div>
+      </header>
+      <main id="main" class="content ${flush ? 'flush' : ''}">${inner}</main>
+    </div></div>`;
+}
+function appRoute(p) {
+  switch (p[1]) {
+    case undefined: return shell('Overview', pageOverview());
+    case 'chat': return shell(p[2] ? (conversationService.get(p[2]) || {}).title || 'Conversation' : 'New chat', pageChat(p[2]), true);
+    case 'history': return shell('Chat history', pageHistory());
+    case 'sources': return p[2] ? shell('Source details', pageSourceDetail(p[2])) : shell('Knowledge sources', pageSources());
+    case 'profile': return shell('Profile', pageProfile());
+    case 'settings': return shell('Settings', pageSettings());
+    default: return shell('Not found', `<div class="page card">${emptyState('map', 'This page does not exist', 'Use the navigation to get back to your workspace.', `<a class="btn btn-pri" href="#/app">Go to overview</a>`)}</div>`);
+  }
+}
+
+/* ---------- composer (-> components/chat/ChatComposer) ---------- */
+function composer(ph) {
+  const st = settingsService.get();
+  return `<form class="comp" data-form="send"><label class="sr" for="comp-t">Your question</label>
+    <textarea id="comp-t" rows="1" maxlength="2000" placeholder="${esc(ph)}" data-input="comp"></textarea>
+    <div class="comp-row"><button type="button" class="icon-btn" data-action="attach" aria-label="Attach a file (demo)" data-tip="Attach a file (demo)">${ic('paperclip')}</button>
+      <label class="scope">${ic('layers')}<span class="sr">Source scope</span><select class="select" data-change="scope" aria-label="Source scope">${opts(SCOPES, ui.scope)}</select></label>
+      <span class="grow"></span><span class="count" id="comp-count">0 / 2000</span>
+      <button type="button" class="icon-btn" id="comp-clear" data-action="comp-clear" aria-label="Clear input" hidden>${ic('x')}</button>
+      <button class="send" id="comp-send" disabled aria-label="Send message">${ic('arrow-up')}</button></div></form>
+    <p class="hint">${st.enterToSend ? 'Enter to send, Shift+Enter for a new line.' : 'Ctrl+Enter to send.'} Demo assistant: answers come from sample knowledge only.</p>`;
+}
+function syncComposer() {
+  const ta = $('#comp-t'); if (!ta) return;
+  ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 180) + 'px';
+  const has = !!ta.value.trim(); $('#comp-send').disabled = !has; $('#comp-clear').hidden = !ta.value;
+  $('#comp-count').textContent = ta.value.length + ' / 2000';
+}
+
+/* ---------- overview (-> pages/dashboard) ---------- */
+function pageOverview() {
+  const u = authService.user(), convs = conversationService.all(), h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const asked = convs.reduce((n, c) => n + c.messages.filter(m => m.role === 'user').length, 0);
+  const week = ACTIVITY.filter(a => Date.now() - new Date(a.at) < 7 * DAY).length;
+  const days = [...Array(7)].map((_, i) => { const d = new Date(Date.now() - (6 - i) * DAY); const key = d.toDateString(); return { l: d.toLocaleDateString(undefined, { weekday: 'short' }), n: convs.reduce((n, c) => n + c.messages.filter(m => m.role === 'user' && new Date(m.at).toDateString() === key).length, 0) }; });
+  const max = Math.max(1, ...days.map(d => d.n));
+  const stats = [['library', 'Knowledge sources', SOURCES.length, 'available'], ['messages-square', 'Conversations', convs.length, 'saved on this device'], ['help-circle', 'Questions asked', asked, 'across all chats'], ['activity', 'Recent activity', week, 'events this week']];
+  return `<div class="page">
+    <div class="ph"><div><h1>${greet}, ${esc(u.name.split(' ')[0])}.</h1><p>Explore your knowledge and pick up where you left off.</p></div><a class="btn btn-out" href="#/app/chat">${ic('plus')}New chat</a></div>
+    <section class="home-comp" aria-label="Ask a question">${composer('What would you like to know?')}
+      <div class="sugs">${SUGGESTED.map(s => `<button class="sug" data-action="suggest" data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div></section>
+    <section class="stats" aria-label="Workspace snapshot, demo data">${stats.map(s => `<div class="card stat"><div class="k">${ic(s[0])}${s[1]}</div><div class="v">${s[2]}</div><small>${s[3]}, demo data</small></div>`).join('')}</section>
+    <div class="cols">
+      <div class="stack">
+        <section class="card blk"><div class="blk-h"><h2>Recent conversations</h2><a class="link" href="#/app/history" style="font-size:14px">View all</a></div>
+          ${convs.length ? convs.slice(0, 4).map(c => `<div class="li"><span class="sicon t-document">${ic('message-square')}</span><div class="b"><h3 class="trunc"><a class="stretch" href="#/app/chat/${c.id}">${esc(c.title)}</a></h3><p class="trunc">${esc(conversationService.preview(c))}</p></div><div class="meta">${rel(c.updatedAt)}<br>${conversationService.sourceIds(c).length} sources</div></div>`).join('')
+            : emptyState('message-square', 'No conversations yet', 'Ask your first question above to start a conversation.')}</section>
+        <section class="card blk"><div class="blk-h"><h2>Questions asked, last 7 days</h2><span class="badge">Demo data</span></div>
+          <div class="bars" role="img" aria-label="Questions per day: ${days.map(d => d.l + ' ' + d.n).join(', ')}">${days.map(d => `<div><b>${d.n || ''}</b><i style="height:${Math.round(d.n / max * 78)}%"></i><span>${d.l}</span></div>`).join('')}</div></section>
+      </div>
+      <div class="stack">
+        <section class="card blk"><div class="blk-h"><h2>Recent knowledge sources</h2><a class="link" href="#/app/sources" style="font-size:14px">Browse</a></div>
+          ${sourceService.query({}).slice(0, 4).map(s => `<div class="li"><span class="sicon t-${s.type}">${ic(TYPES[s.type].icon)}</span><div class="b"><h3 class="trunc"><a class="stretch" href="#/app/sources/${s.id}">${esc(s.title)}</a></h3><p>${TYPES[s.type].label}, added ${rel(s.addedAt).toLowerCase()}</p></div>${s.status === 'indexed' ? `<span class="badge ok">Indexed</span>` : `<span class="badge warn">Processing</span>`}</div>`).join('')}</section>
+        <section class="card blk"><div class="blk-h"><h2>Activity</h2><span class="badge">Sample events</span></div>
+          <ul class="tl">${ACTIVITY.map(a => `<li><span class="tico">${ic(a.icon)}</span><span>${esc(a.text)}<small>${rel(a.at)}</small></span></li>`).join('')}</ul></section>
+      </div></div></div>`;
+}
+
+/* ---------- chat (-> pages/chat + components/chat/*) ---------- */
+function md(text, m, showC) {
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\s?\[(\d+)\]/g, (_, n) => showC && m.cites[n - 1] ? `<button class="cite" data-action="cite" data-mid="${m.id}" data-n="${n}" aria-label="Open source ${n}">${n}</button>` : '');
+  return text.split(/\n\n+/).map(b => { const ls = b.split('\n'); return ls.every(l => l.startsWith('- ')) ? `<ul>${ls.map(l => `<li>${inline(l.slice(2))}</li>`).join('')}</ul>` : `<p>${ls.map(inline).join('<br>')}</p>`; }).join('');
+}
+function msgHTML(m, isLast) {
+  if (m.role === 'user') return `<div class="m m-user"><div class="bubble">${esc(m.text).replace(/\n/g, '<br>')}</div><div class="m-act"><button class="icon-btn sm" data-action="edit-msg" data-mid="${m.id}" aria-label="Edit and resend" data-tip="Edit and resend">${ic('pencil')}</button></div></div>`;
+  const showC = settingsService.get().showCitations;
+  const cards = m.cites.map((c, i) => { const s = sourceService.get(c.s), e = sourceService.excerpt(c.s, c.e), loc = sourceService.locLabel(s, e); return `<button class="ccard" data-action="cite" data-mid="${m.id}" data-n="${i + 1}"><span class="c num">${i + 1}</span><div><b>${esc(s.title)}</b><small>${ic(TYPES[s.type].icon)}${TYPES[s.type].label}${loc ? ', ' + esc(loc) : ''}</small></div></button>`; }).join('');
+  return `<article class="m m-ai"><span class="mark">${logo(30)}</span><div>
+    <div class="m-meta"><b>${BRAND.name}</b><span class="badge">Demo response</span><time>${rel(m.at)}</time></div>
+    ${m.fallback ? `<div class="fallback">${ic('alert-circle')}<div><p>${esc(m.text)}</p>${m.scope && m.scope !== 'all' ? `<p class="muted" style="font-size:13.5px;margin-top:6px">Searched scope: ${esc(SCOPES.find(s => s[0] === m.scope)[1])}. Try "All sources".</p>` : ''}<p style="margin-top:8px"><a class="link" href="#/app/sources">Explore available sources</a></p></div></div>`
+      : `<div class="prose">${md(m.text, m, showC)}</div>`}
+    ${showC && m.cites.length ? `<div class="cites"><div class="cites-h">${ic('quote')}${m.cites.length} source${m.cites.length > 1 ? 's' : ''}</div><div class="cites-g">${cards}</div></div>` : ''}
+    <div class="m-act">
+      <button class="icon-btn sm" data-action="copy-msg" data-mid="${m.id}" aria-label="Copy response" data-tip="Copy">${ic('copy')}</button>
+      ${m.cites.length ? `<button class="icon-btn sm" data-action="cite" data-mid="${m.id}" data-n="1" aria-label="View sources" data-tip="View sources">${ic('book-open')}</button>` : ''}
+      <button class="icon-btn sm" data-action="feedback" data-mid="${m.id}" data-v="up" aria-pressed="${m.feedback === 'up'}" aria-label="Helpful" data-tip="Helpful">${ic('thumbs-up')}</button>
+      <button class="icon-btn sm" data-action="feedback" data-mid="${m.id}" data-v="down" aria-pressed="${m.feedback === 'down'}" aria-label="Not helpful" data-tip="Not helpful">${ic('thumbs-down')}</button>
+      ${isLast && m.kb ? `<button class="icon-btn sm" data-action="regen" data-mid="${m.id}" aria-label="Regenerate demo response" data-tip="Regenerate (demo)">${ic('refresh-cw')}</button>` : ''}
+      <div class="menu-wrap"><button class="icon-btn sm" data-action="menu" aria-haspopup="true" aria-expanded="false" aria-label="More actions">${ic('more-horizontal')}</button>
+        <div class="menu up left" hidden><button data-action="copy-msg" data-mid="${m.id}" data-with="1">${ic('copy')}Copy with source list</button>${m.cites.length ? `<a href="#/app/sources/${m.cites[0].s}">${ic('external-link')}Open first source page</a>` : ''}<button data-action="report" data-mid="${m.id}">${ic('alert-triangle')}Report a problem</button></div></div>
+    </div></div></article>`;
+}
+function msgsHTML(c) {
+  const st = settingsService.get(), ms = c.messages, last = ms[ms.length - 1], busy = pending.has(c.id);
+  let h = ms.map((m, i) => msgHTML(m, i === ms.length - 1)).join('');
+  if (busy) h += `<div class="m m-ai" aria-label="Assistant is preparing a response"><span class="mark">${logo(30)}</span><div><div class="typing"><i></i><i></i><i></i></div><span class="sr">Searching demo knowledge</span></div></div>`;
+  else if (st.showFollowups && last && last.role === 'ai') {
+    const f = last.kb ? KNOWLEDGE.find(k => k.id === last.kb).followups : SUGGESTED.slice(0, 3);
+    h += `<div class="fups">${f.map(q => `<button class="sug" data-action="suggest" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>`;
+  }
+  return `<div class="msgs-in">${h}</div>`;
+}
+function panelHTML() {
+  const p = ui.panel; if (!p) return '';
+  const s = sourceService.get(p.s), e = sourceService.excerpt(p.s, p.e), loc = sourceService.locLabel(s, e);
+  return `<div class="sp-h"><h2>Source ${p.n}</h2><button class="icon-btn sm" data-action="panel-close" aria-label="Close source panel">${ic('x')}</button></div>
+    <div class="row gap8 wrap">${typeBadge(s)}${statusBadge(s)}</div><h3>${esc(s.title)}</h3><p class="muted" style="font-size:14px">${esc(s.description)}</p>
+    <div class="quote">"${esc(e.text)}"</div>
+    <dl class="kv">${s.channelName ? `<dt>Channel</dt><dd>${esc(s.channelName)}</dd>` : ''}${s.fileName ? `<dt>File</dt><dd>${esc(s.fileName)}</dd>` : ''}${s.participants ? `<dt>Participants</dt><dd>${esc(s.participants)}</dd>` : ''}${loc ? `<dt>${s.type === 'youtube' ? 'Timestamp' : 'Location'}</dt><dd>${esc(loc)}</dd>` : ''}<dt>Relevance</dt><dd>${p.n === 1 ? 'High' : 'Medium'} (demo value)</dd><dt>Added</dt><dd>${fmtDate(s.addedAt)}</dd></dl>
+    <div style="display:grid;gap:8px"><a class="btn btn-pri btn-sm" href="#/app/sources/${s.id}">Open full source</a>
+    ${s.type === 'youtube' ? `<a class="btn btn-out btn-sm" href="${sourceService.tsUrl(s, e)}" target="_blank" rel="noopener">${ic('external-link')}Open on YouTube at ${esc(e.timestamp)}</a><p class="help">Placeholder video link. The title and transcript shown here are illustrative and are not from this video.</p>` : ''}</div>`;
+}
+function pageChat(id) {
+  const c = id ? conversationService.get(id) : null;
+  if (id && !c) return `<div class="page" style="padding:28px">${`<div class="card">${emptyState('message-square', 'Conversation not found', 'It may have been deleted from this device.', `<a class="btn btn-pri" href="#/app/chat">Start a new chat</a>`)}</div>`}</div>`;
+  const body = c ? msgsHTML(c) : `<div class="msgs-in chat-empty">${logo(48)}<h2>What would you like to explore?</h2><p>Ask a question about your indexed knowledge. Relevant sources will appear alongside supported answers.</p>
+      <div class="pgrid">${SUGGESTED.map((s, i) => `<button data-action="suggest" data-q="${esc(s)}">${ic(['play-circle', 'scale', 'layers', 'help-circle'][i])}<span>${esc(s)}</span></button>`).join('')}</div></div>`;
+  return `<div class="chat ${ui.panel ? 'has-panel' : ''}" id="chat"><section class="chat-main">
+      <div class="chat-head">${c ? `<button class="ttl" data-action="rename" data-id="${c.id}" aria-label="Rename conversation"><h1 class="trunc" id="chat-title">${esc(c.title)}</h1>${ic('pencil')}</button>` : `<h1>New chat</h1>`}
+        <span class="grow"></span><a class="btn btn-sm btn-out" href="#/app/chat">${ic('plus')}<span>New chat</span></a>
+        ${c ? `<div class="menu-wrap"><button class="icon-btn" data-action="menu" aria-haspopup="true" aria-expanded="false" aria-label="Conversation actions">${ic('more-vertical')}</button><div class="menu" hidden><button data-action="rename" data-id="${c.id}">${ic('pencil')}Rename</button><a href="#/app/history">${ic('history')}Open chat history</a><hr><button class="danger" data-action="delete-conv" data-id="${c.id}">${ic('trash-2')}Delete</button></div></div>` : ''}</div>
+      <div class="msgs" id="msgs" role="log" aria-live="polite">${body}</div>
+      <div class="comp-wrap"><div class="comp-in">${composer(c ? 'Ask a follow-up' : 'Ask about your knowledge')}</div></div>
+    </section><aside class="spanel" id="spanel" aria-label="Source details">${panelHTML()}</aside></div>`;
+}
+function refreshChat() {
+  const id = parse().parts[2], c = id && conversationService.get(id), ms = $('#msgs');
+  if (c && ms) { ms.innerHTML = msgsHTML(c); ms.scrollTop = ms.scrollHeight; }
+  const rc = $('#recents'); if (rc) rc.innerHTML = recentsHTML();
+  icons();
+}
+function handleSend(text) {
+  text = (text || '').trim(); if (!text) return;
+  const r = parse(); let c = r.parts[1] === 'chat' && r.parts[2] ? conversationService.get(r.parts[2]) : null;
+  if (c && pending.has(c.id)) return toast('Wait for the current response to finish.', 'info');
+  if (!c) c = conversationService.create(text);
+  const id = c.id, scope = ui.scope;
+  conversationService.addMessage(id, { role: 'user', text });
+  ui.draft = ''; pending.add(id);
+  if (parse().path !== '/app/chat/' + id) go('/app/chat/' + id); else { const ta = $('#comp-t'); if (ta) { ta.value = ''; syncComposer(); } refreshChat(); }
+  chatService.reply(text, scope).then(msg => finishReply(id, msg));
+}
+function finishReply(id, msg) {
+  pending.delete(id); if (!conversationService.get(id)) return;
+  conversationService.addMessage(id, msg);
+  if (parse().path === '/app/chat/' + id) refreshChat();
+}
+
+/* ---------- history (-> pages/history) ---------- */
+function histListHTML() {
+  const f = ui.hist, list = conversationService.query(f), any = conversationService.all().length;
+  if (!any) return `<div class="card">${emptyState('message-square', 'No conversations yet', 'Conversations you start are saved on this device and listed here.', `<a class="btn btn-pri" href="#/app/chat">${ic('plus')}Start a new chat</a>`)}</div>`;
+  if (!list.length) return `<div class="card">${emptyState('search', 'No conversations match', 'Change the search text or filters to see more conversations.', `<button class="btn btn-out" data-action="hist-clear">Clear filters</button>`)}</div>`;
+  return `<div class="hlist ${f.view}">${list.map(c => { const ids = conversationService.sourceIds(c), types = [...new Set(ids.map(i => sourceService.get(i).type))]; return `<article class="card hitem"><span class="sicon t-document">${ic('message-square')}</span>
+    <div class="b"><h3><a class="stretch" href="#/app/chat/${c.id}">${esc(c.title)}</a></h3><p class="clamp2">${esc(conversationService.preview(c))}</p>
+      <div class="mt"><span>${ic('clock')}${rel(c.updatedAt)}</span><span>${ic('quote')}${ids.length} source${ids.length === 1 ? '' : 's'}</span><span>${ic('message-square')}${c.messages.length} messages</span>${types.map(t => `<span>${ic(TYPES[t].icon)}${TYPES[t].label}</span>`).join('')}</div></div>
+    <div class="menu-wrap"><button class="icon-btn sm" data-action="menu" aria-haspopup="true" aria-expanded="false" aria-label="Actions for ${esc(c.title)}">${ic('more-vertical')}</button><div class="menu" hidden><a href="#/app/chat/${c.id}">${ic('arrow-right')}Open</a><button data-action="rename" data-id="${c.id}">${ic('pencil')}Rename</button><hr><button class="danger" data-action="delete-conv" data-id="${c.id}">${ic('trash-2')}Delete</button></div></div></article>`; }).join('')}</div>`;
+}
+function pageHistory() {
+  const f = ui.hist;
+  if (!ui.loaded.hist) { setTimeout(() => { ui.loaded.hist = 1; if (parse().path === '/app/history') render(); }, 420); }
+  return `<div class="page"><div class="ph"><div><h1>Chat history</h1><p>Every conversation saved on this device.</p></div><a class="btn btn-pri" href="#/app/chat">${ic('plus')}New chat</a></div>
+    <div class="fbar"><div class="search">${ic('search')}<label class="sr" for="h-q">Search conversations</label><input class="input" id="h-q" placeholder="Search titles and messages" value="${esc(f.q)}" data-input="hist-q"></div>
+      <select class="select sm" data-change="hist" data-key="date" aria-label="Date filter">${opts([['all', 'Any time'], ['today', 'Last 24 hours'], ['7', 'Last 7 days'], ['30', 'Last 30 days']], f.date)}</select>
+      <select class="select sm" data-change="hist" data-key="type" aria-label="Source type filter">${opts([['all', 'Any source type'], ...SCOPES.slice(1)], f.type)}</select>
+      <select class="select sm" data-change="hist" data-key="sort" aria-label="Sort">${opts([['newest', 'Newest first'], ['oldest', 'Oldest first'], ['title', 'Title A to Z']], f.sort)}</select>
+      <div class="vt" role="group" aria-label="View"><button data-action="hist-view" data-v="list" aria-pressed="${f.view === 'list'}" aria-label="List view">${ic('list')}</button><button data-action="hist-view" data-v="grid" aria-pressed="${f.view === 'grid'}" aria-label="Grid view">${ic('layout-grid')}</button></div>
+      <button class="btn btn-sm btn-ghost" data-action="hist-clear">Clear filters</button></div>
+    <div id="hist-list">${ui.loaded.hist ? histListHTML() : `<div class="hlist">${'<div class="skel" style="height:104px"></div>'.repeat(4)}</div>`}</div></div>`;
+}
+
+/* ---------- sources (-> pages/sources + components/sources) ---------- */
+function sourceCard(s) {
+  const meta = s.type === 'youtube' ? `<span>${ic('tv')}${esc(s.channelName)}</span>` : s.type === 'document' ? `<span>${ic('file')}${esc(s.fileType)}, ${s.pages} pages</span>` : s.type === 'conversation' ? `<span>${ic('users')}${esc(s.participants)}</span>` : `<span>${ic('align-left')}${s.excerpts.length} passages</span>`;
+  return `<article class="card scard">${s.type === 'youtube' ? `<div class="thumb" aria-hidden="true"><span class="play">${ic('play')}</span><span class="dur">${s.duration}</span></div>` : ''}
+    <div class="sc-b"><div class="sc-top">${s.type !== 'youtube' ? `<span class="sicon t-${s.type}">${ic(TYPES[s.type].icon)}</span>` : ''}<div class="row gap8 wrap">${typeBadge(s)}${statusBadge(s)}</div></div>
+      <h3><a class="stretch" href="#/app/sources/${s.id}">${esc(s.title)}</a></h3>${s.fileName ? `<p class="muted" style="font-size:13px;margin-top:-4px">${esc(s.fileName)}</p>` : ''}
+      <p class="muted clamp2" style="font-size:14px">${esc(s.description)}</p><div class="tags">${s.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+      <div class="sc-m">${meta}<span>${ic('calendar')}Added ${fmtDate(s.addedAt)}</span>${s.type === 'youtube' ? `<span>${ic('check')}Transcript ready (demo)</span>` : ''}</div></div></article>`;
+}
+function srcListHTML() {
+  const f = ui.src, list = sourceService.query(f);
+  if (!list.length) return `<div class="card">${emptyState('search', 'No sources match', 'Try another search term or switch the source type.', `<button class="btn btn-out" data-action="src-clear">Clear search and filters</button>`)}</div>`;
+  return `<div class="sgrid">${list.slice(0, f.shown).map(sourceCard).join('')}</div>${list.length > f.shown ? `<div class="more"><button class="btn btn-out" data-action="src-more">Load more (${list.length - f.shown} remaining)</button></div>` : ''}`;
+}
+function pageSources() {
+  const f = ui.src, c = sourceService.counts();
+  if (!ui.loaded.src) { setTimeout(() => { ui.loaded.src = 1; if (parse().path === '/app/sources') render(); }, 420); }
+  return `<div class="page"><div class="ph"><div><h1>Your Knowledge</h1><p>Explore the sources available to your workspace.</p></div><span class="badge">${ic('eye')}Read-only, sample sources</span></div>
+    <div class="sum">${Object.keys(TYPES).map(t => `<div class="card"><span class="sicon t-${t}">${ic(TYPES[t].icon)}</span><div><b>${c[t]}</b><span>${TYPES[t].plural}</span></div></div>`).join('')}</div>
+    <div class="fbar"><div class="tabs" role="tablist" aria-label="Source type">${SCOPES.map(([v, l]) => `<button role="tab" aria-selected="${f.type === v}" data-action="src-type" data-v="${v}">${l}<span class="n">${c[v]}</span></button>`).join('')}</div></div>
+    <div class="fbar"><div class="search">${ic('search')}<label class="sr" for="s-q">Search sources</label><input class="input" id="s-q" placeholder="Search titles, descriptions and topics" value="${esc(f.q)}" data-input="src-q"></div>
+      <select class="select sm" data-change="src-sort" aria-label="Sort">${opts([['newest', 'Newest first'], ['oldest', 'Oldest first'], ['title', 'Title A to Z']], f.sort)}</select></div>
+    <div id="src-list">${ui.loaded.src ? srcListHTML() : `<div class="sgrid">${'<div class="skel" style="height:230px"></div>'.repeat(6)}</div>`}</div></div>`;
+}
+function pageSourceDetail(id) {
+  const s = sourceService.get(id);
+  if (!s) return `<div class="page card">${emptyState('file-text', 'Source not found', 'This source is not in the workspace. It may have been removed, or the link is incorrect.', `<a class="btn btn-pri" href="#/app/sources">Back to sources</a>`)}</div>`;
+  const linked = conversationService.all().filter(c => conversationService.sourceIds(c).includes(s.id));
+  return `<div class="page"><a class="link" href="#/app/sources" style="display:inline-flex;gap:6px;align-items:center;margin-bottom:16px">${ic('arrow-left')}Back to sources</a>
+    <div class="ph"><div style="min-width:0"><div class="row gap8 wrap" style="margin-bottom:10px">${typeBadge(s)}${statusBadge(s)}</div><h1 style="overflow-wrap:anywhere">${esc(s.title)}</h1><p>${esc(s.description)}</p></div>
+      ${s.type === 'youtube' ? `<a class="btn btn-out" href="${s.videoUrl}" target="_blank" rel="noopener">${ic('external-link')}Open on YouTube</a>` : ''}</div>
+    <div class="det"><div class="stack">
+      ${s.type === 'youtube' ? `<div class="card" style="overflow:hidden"><div class="thumb" style="aspect-ratio:16/6" aria-hidden="true"><span class="play">${ic('play')}</span><span class="dur">${s.duration}</span></div><p class="help" style="padding:12px 18px;margin:0">${ic('info')} The link opens a placeholder public video. The title, channel and transcript on this page are illustrative sample content and are not taken from that video.</p></div>` : ''}
+      <section class="card blk"><div class="blk-h"><h2>${s.type === 'youtube' ? 'Transcript segments' : s.type === 'conversation' ? 'Conversation excerpts' : 'Text excerpts'}</h2><span class="badge">Sample content</span></div>
+        ${s.excerpts.length ? s.excerpts.map(e => `<div class="seg" id="ex-${e.id}">${s.type === 'youtube' ? `<a class="ts" href="${sourceService.tsUrl(s, e)}" target="_blank" rel="noopener" aria-label="Open video at ${e.timestamp}">${e.timestamp}</a>` : e.loc ? `<span class="ts">${esc(e.loc)}</span>` : ''}<p>${esc(e.text)}</p></div>`).join('')
+          : emptyState('clock', 'Still processing', 'Excerpts appear here once a source has been indexed. In this preview the status is a sample value.')}</section>
+      <section class="card blk"><div class="blk-h"><h2>Linked conversations</h2></div>
+        ${linked.length ? linked.map(c => `<div class="li"><span class="sicon t-document">${ic('message-square')}</span><div class="b"><h3 class="trunc"><a class="stretch" href="#/app/chat/${c.id}">${esc(c.title)}</a></h3><p>${rel(c.updatedAt)}</p></div>${ic('chevron-right')}</div>`).join('') : `<p class="muted">No conversation has cited this source yet.</p>`}</section>
+    </div>
+    <aside class="card blk"><div class="blk-h"><h2>Details</h2></div>
+      <dl class="kv"><dt>Type</dt><dd>${TYPES[s.type].label}</dd>${s.channelName ? `<dt>Channel</dt><dd>${esc(s.channelName)}</dd><dt>Duration</dt><dd>${s.duration}</dd><dt>Transcript</dt><dd>Ready (demo)</dd>` : ''}${s.fileName ? `<dt>File name</dt><dd>${esc(s.fileName)}</dd><dt>File type</dt><dd>${s.fileType}</dd><dt>Pages</dt><dd>${s.pages}</dd>` : ''}${s.participants ? `<dt>Participants</dt><dd>${esc(s.participants)}</dd>` : ''}<dt>Added</dt><dd>${fmtDate(s.addedAt)}</dd><dt>Status</dt><dd>${s.status === 'indexed' ? 'Indexed' : 'Processing'} (demo)</dd><dt>Excerpts</dt><dd>${s.excerpts.length}</dd></dl>
+      <h3 style="font-size:14px;margin:16px 0 8px">Related topics</h3><div class="tags">${s.tags.map(t => `<button class="tag" data-action="src-tag" data-v="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+      <a class="btn btn-pri btn-sm block" style="margin-top:20px" href="#/app/chat">${ic('message-square')}Ask about this topic</a></aside></div></div>`;
+}
+
+/* ---------- profile + settings (-> pages/profile, pages/settings) ---------- */
+const TZ = ['UTC', 'Asia/Karachi', 'Asia/Dubai', 'Asia/Kolkata', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Australia/Sydney'];
+const LANGS = ['English', 'Arabic', 'French', 'German', 'Spanish', 'Urdu'];
+function pageProfile() {
+  const u = authService.user();
+  return `<div class="page" style="max-width:820px"><div class="ph"><div><h1>Profile</h1><p>Your account details in this workspace.</p></div></div>
+    <div class="card pcard"><span class="avatar lg">${esc(initials(u.name))}</span><div style="min-width:0"><h2 style="font-size:21px">${esc(u.name)}</h2><p class="muted" style="overflow-wrap:anywhere">${esc(u.email)}</p>
+      <div class="row gap8 wrap" style="margin-top:10px"><span class="badge pri">${ic('user')}${esc(u.role)}</span><span class="badge">${ic('calendar')}Member since ${fmtDate(u.createdAt)}</span></div></div></div>
+    <form class="card blk" data-form="profile" novalidate><div class="blk-h"><h2>Edit profile</h2></div>
+      <div class="fgrid">${field({ id: 'p-name', label: 'Full name', value: u.name, ac: 'name' })}${field({ id: 'p-email', label: 'Email', type: 'email', value: u.email, ac: 'email' })}
+        <div class="field"><label for="p-tz">Time zone</label><select class="select" id="p-tz">${opts(TZ, u.timezone)}</select></div>
+        <div class="field"><label for="p-lang">Language</label><select class="select" id="p-lang">${opts(LANGS, u.language)}</select></div>
+        <div class="field"><label for="p-role">Role</label><input class="input" id="p-role" value="${esc(u.role)}" disabled><p class="help">Roles are assigned by a workspace administrator.</p></div></div>
+      <div class="modal-f" style="margin-top:6px"><button type="button" class="btn btn-out" data-action="profile-cancel">Cancel</button><button class="btn btn-pri">Save changes</button></div></form></div>`;
+}
+function pageSettings() {
+  const s = settingsService.get(), t = ui.setTab;
+  const tabs = [['general', 'sliders', 'General'], ['chat', 'message-square', 'Chat preferences'], ['notifications', 'bell', 'Notifications'], ['privacy', 'shield', 'Privacy and data']];
+  const sw = (key, title, text) => `<div class="srow"><div><h3 id="s-${key}">${title}</h3><p>${text}</p></div><label class="switch"><input type="checkbox" data-change="set" data-key="${key}" ${s[key] ? 'checked' : ''} aria-labelledby="s-${key}"><span></span></label></div>`;
+  const sel = (key, title, text, list) => `<div class="srow"><div><h3 id="s-${key}">${title}</h3><p>${text}</p></div><select class="select sm" data-change="set" data-key="${key}" aria-labelledby="s-${key}">${opts(list, s[key])}</select></div>`;
+  const seg = (key, title, text, list) => `<div class="srow"><div><h3>${title}</h3><p>${text}</p></div><div class="tabs" role="group" aria-label="${title}">${list.map(([v, l, i]) => `<button data-action="set-seg" data-key="${key}" data-v="${v}" aria-pressed="${s[key] === v}">${i ? ic(i) : ''}${l}</button>`).join('')}</div></div>`;
+  const body = {
+    general: sel('language', 'Preferred language', 'Language for the interface. Only English copy is included in this preview.', LANGS) + sel('timezone', 'Time zone', 'Used when dates and times are displayed.', TZ)
+      + seg('theme', 'Appearance', 'Choose a light or dark interface, or follow your device.', [['light', 'Light', 'sun'], ['dark', 'Dark', 'moon'], ['system', 'System', 'monitor']])
+      + seg('density', 'Density', 'Comfortable gives more room. Compact shows more on screen.', [['comfortable', 'Comfortable'], ['compact', 'Compact']]),
+    chat: sw('enterToSend', 'Press Enter to send', 'When off, use Ctrl+Enter to send and Enter for a new line.') + sw('showCitations', 'Show source citations', 'Display citation markers and source cards under answers.')
+      + sel('defaultScope', 'Default source scope', 'Which sources a new question searches by default.', SCOPES) + sw('showFollowups', 'Display follow-up suggestions', 'Suggest related questions after each answer.'),
+    notifications: sw('notifUpdates', 'Product updates', 'News about new features. Stored as a preference only; no messages are sent by this preview.') + sw('notifActivity', 'Activity notifications', 'Alerts about your sources and conversations. Stored as a preference only.'),
+    privacy: `<div class="srow"><div><h3>Where your data is stored</h3><p>This preview stores demo conversations, profile edits and preferences locally in this browser. Nothing is sent to a server.</p></div><span class="badge">${ic('monitor')}This device</span></div>
+      <div class="srow"><div><h3>Clear local demo conversations</h3><p>Removes every conversation saved in this browser. This cannot be undone.</p></div><button class="btn btn-sm btn-out" data-action="clear-convs" style="color:var(--err)">${ic('trash-2')}Clear conversations</button></div>
+      <div class="srow"><div><h3>Restore sample conversations</h3><p>Brings back the original set of sample conversations.</p></div><button class="btn btn-sm btn-out" data-action="reset-convs">${ic('refresh-cw')}Restore samples</button></div>
+      <div class="srow"><div><h3>Delete account</h3><p>Real account deletion and server-side data deletion require the backend integration and are not available in this preview.</p></div><button class="btn btn-sm btn-out" disabled>Not available yet</button></div>`
+  }[t];
+  return `<div class="page" style="max-width:980px"><div class="ph"><div><h1>Settings</h1><p>Preferences are saved on this device.</p></div></div>
+    <div class="set"><nav class="card set-nav" role="tablist" aria-label="Settings sections">${tabs.map(([v, i, l]) => `<button role="tab" aria-selected="${t === v}" data-action="set-tab" data-v="${v}">${ic(i)}${l}</button>`).join('')}</nav>
+      <section class="card set-b" role="tabpanel">${body}</section></div></div>`;
+}
+
+/* ==========================================================================
+   ACTIONS (click)  -> component event handlers
+   ========================================================================== */
+const actions = {
+  'scroll'(t) { const id = t.dataset.target; const n = $('#lnav'); n && n.classList.remove('open'); const jump = () => { const el = document.getElementById(id); el && window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 60, behavior: 'smooth' }); }; if (parse().path !== '/') { go('/'); setTimeout(jump, 80); } else jump(); },
+  'skip'() { const m = $('#main'); if (m) { m.tabIndex = -1; m.focus(); } },
+  'ann-close'() { ui.annClosed = true; store.set('annClosed', true); const a = $('#ann'); a && a.remove(); },
+  'lnav-toggle'(t) { const o = $('#lnav').classList.toggle('open'); t.setAttribute('aria-expanded', o); t.setAttribute('aria-label', o ? 'Close menu' : 'Open menu'); },
+  'faq'(t) { t.setAttribute('aria-expanded', t.getAttribute('aria-expanded') !== 'true'); },
+  'toggle-pw'(t) { const i = $('#' + t.dataset.for), show = i.type === 'password'; i.type = show ? 'text' : 'password'; t.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); t.innerHTML = ic(show ? 'eye-off' : 'eye'); icons(); },
+  'fill-demo'() { $('#l-email').value = DEMO.email; $('#l-pw').value = DEMO.password; toast('Demo credentials filled in.', 'info'); },
+  'menu'(t) { const m = t.parentElement.querySelector('.menu'), open = m.hidden; closeMenus(); m.hidden = !open; t.setAttribute('aria-expanded', open); },
+  'modal-bg'(t, e) { if (e.target === t) closeModal(); },
+  'modal-close'() { closeModal(); },
+  'nav-open'() { $('#shell').classList.add('nav-open'); },
+  'nav-close'() { $('#shell').classList.remove('nav-open'); },
+  'side-collapse'(t) { const c = $('#shell').classList.toggle('col'); store.set('sideCol', c); t.setAttribute('aria-label', (c ? 'Expand' : 'Collapse') + ' sidebar'); },
+  'notif-read'() { store.set('notifRead', true); const d = $('#ndot'); d && d.remove(); toast('Notifications marked as read.'); },
+  'logout'() { authService.logout(); toast('Signed out.', 'info'); go('/login'); },
+  'suggest'(t) { handleSend(t.dataset.q); },
+  'comp-clear'() { const ta = $('#comp-t'); ta.value = ''; ui.draft = ''; syncComposer(); ta.focus(); },
+  'attach'() { openModal({ title: 'File upload is not connected yet', body: `<p>Uploading and indexing documents needs the server integration. In this preview nothing is uploaded, and no file is added to your knowledge sources.</p><p style="margin-top:10px">You can browse the sample documents under Knowledge Sources.</p>`, ok: 'Browse sample sources', cancel: 'Close', onOk: () => go('/app/sources') }); },
+  'cite'(t) { const { m } = conversationService.findMsg(t.dataset.mid); const n = +t.dataset.n; if (!m || !m.cites[n - 1]) return; ui.panel = { ...m.cites[n - 1], n }; $('#chat').classList.add('has-panel'); $('#spanel').innerHTML = panelHTML(); icons(); const b = $('#spanel button'); b && b.focus(); },
+  'panel-close'() { ui.panel = null; $('#chat').classList.remove('has-panel'); },
+  'copy-msg'(t) { const { m } = conversationService.findMsg(t.dataset.mid); if (!m) return; let txt = m.text.replace(/\s?\[\d+\]/g, ''); if (t.dataset.with && m.cites.length) txt = m.text + '\n\nSources:\n' + m.cites.map((c, i) => `[${i + 1}] ${sourceService.get(c.s).title}`).join('\n'); const done = () => toast('Response copied.'); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(done).catch(() => toast('Copy is not available in this browser.', 'err')); },
+  'feedback'(t) { const { c, m } = conversationService.findMsg(t.dataset.mid); if (!m) return; const v = m.feedback === t.dataset.v ? null : t.dataset.v; conversationService.update(c.id, x => { x.messages.find(y => y.id === m.id).feedback = v; }); refreshChat(); toast(v ? 'Feedback saved on this device.' : 'Feedback removed.'); },
+  'report'() { toast('Reporting needs the server integration. Nothing was sent.', 'info'); },
+  'regen'(t) { const { c, m } = conversationService.findMsg(t.dataset.mid); if (!m || pending.has(c.id)) return; const q = [...c.messages].reverse().find(x => x.role === 'user'); conversationService.update(c.id, x => { x.messages = x.messages.filter(y => y.id !== m.id); }); pending.add(c.id); refreshChat(); chatService.reply(q ? q.text : '', m.scope || 'all', (m.variant || 0) + 1, m.kb).then(msg => finishReply(c.id, msg)); },
+  'edit-msg'(t) { const { c, m } = conversationService.findMsg(t.dataset.mid); if (!m || pending.has(c.id)) return; conversationService.update(c.id, x => { x.messages = x.messages.slice(0, x.messages.findIndex(y => y.id === m.id)); }); ui.draft = m.text; refreshChat(); const ta = $('#comp-t'); ta.value = m.text; syncComposer(); ta.focus(); toast('Edit your question and send it again.', 'info'); },
+  'rename'(t) { const c = conversationService.get(t.dataset.id); if (!c) return; promptDialog('Rename conversation', 'Title', c.title, v => { conversationService.rename(c.id, v); toast('Conversation renamed.'); render(); }); },
+  'delete-conv'(t) { const c = conversationService.get(t.dataset.id); if (!c) return; confirmDialog('Delete this conversation?', `"${c.title}" will be removed from this device. This cannot be undone.`, 'Delete', () => { conversationService.remove(c.id); pending.delete(c.id); toast('Conversation deleted.'); if (parse().path === '/app/chat/' + c.id) go('/app/chat'); else render(); }); },
+  'hist-view'(t) { ui.hist.view = t.dataset.v; render(); },
+  'hist-clear'() { ui.hist = { ...ui.hist, q: '', date: 'all', type: 'all', sort: 'newest' }; render(); },
+  'src-type'(t) { ui.src.type = t.dataset.v; ui.src.shown = 6; render(); },
+  'src-more'() { ui.src.shown += 6; $('#src-list').innerHTML = srcListHTML(); icons(); },
+  'src-clear'() { ui.src = { q: '', type: 'all', sort: 'newest', shown: 6 }; render(); },
+  'src-tag'(t) { ui.src = { q: t.dataset.v, type: 'all', sort: 'newest', shown: 6 }; go('/app/sources'); },
+  'profile-cancel'() { render(); toast('Changes discarded.', 'info'); },
+  'set-tab'(t) { ui.setTab = t.dataset.v; render(); },
+  'set-seg'(t) { settingsService.set(t.dataset.key, t.dataset.v); render(); toast('Preference saved.'); },
+  'clear-convs'() { confirmDialog('Clear all local demo conversations?', 'Every conversation saved in this browser will be removed. This cannot be undone.', 'Clear conversations', () => { conversationService.clear(); pending.clear(); toast('Local conversations cleared.'); render(); }); },
+  'reset-convs'() { conversationService.reset(); toast('Sample conversations restored.'); render(); }
+};
+document.addEventListener('click', e => {
+  if (!e.target.closest('.menu-wrap')) closeMenus();
+  const t = e.target.closest('[data-action]'); if (!t) { if (e.target.closest('.snav a, .recents a')) { const s = $('#shell'); s && s.classList.remove('nav-open'); } return; }
+  const fn = actions[t.dataset.action]; if (!fn) return;
+  if (t.tagName === 'A' && !(t.getAttribute('href') || '').startsWith('#/')) e.preventDefault();
+  const inMenu = t.closest('.menu'); fn(t, e); if (inMenu) closeMenus();
+});
+
+/* ==========================================================================
+   FORMS / INPUT / KEYBOARD
+   ========================================================================== */
+const forms = {
+  async login(f) {
+    const email = $('#l-email').value.trim(), pw = $('#l-pw').value; $('#form-alert').innerHTML = '';
+    const ok = [setErr('l-email', !email ? 'Enter your email.' : !isEmail(email) ? 'Enter a valid email address.' : ''), setErr('l-pw', !pw ? 'Enter your password.' : '')].every(Boolean);
+    if (!ok) return; const btn = $('button.btn-pri', f); btnLoad(btn, true);
+    const res = await authService.login(email, pw, $('#l-rem').checked); btnLoad(btn, false);
+    if (!res.ok) { $('#form-alert').innerHTML = `<div class="alert err" role="alert">${ic('alert-circle')}<span>${esc(res.error)} Use the demo account shown below.</span></div>`; icons(); return; }
+    toast('Signed in to the demo workspace.'); const to = ui.redirect || '/app'; ui.redirect = null; go(to);
+  },
+  async register(f) {
+    const v = id => $('#' + id).value.trim(), pw = $('#r-pw').value, pw2 = $('#r-pw2').value;
+    const ok = [setErr('r-name', v('r-name').length < 2 ? 'Enter your full name.' : ''), setErr('r-email', !isEmail(v('r-email')) ? 'Enter a valid email address.' : ''), setErr('r-code', !v('r-code') ? 'Enter your invitation code.' : ''),
+      setErr('r-pw', pw.length < 8 ? 'Use at least 8 characters.' : !/[A-Za-z]/.test(pw) || !/\d/.test(pw) ? 'Include at least one letter and one number.' : ''), setErr('r-pw2', pw2 !== pw ? 'The passwords do not match.' : ''), setErr('r-terms', !$('#r-terms').checked ? 'Accept the terms to continue.' : '')].every(Boolean);
+    if (!ok) { const bad = $('[aria-invalid=true]', f); bad && bad.focus(); return; }
+    const btn = $('button.btn-pri', f); btnLoad(btn, true);
+    const res = await authService.register({ name: v('r-name'), email: v('r-email'), code: v('r-code') }); btnLoad(btn, false);
+    if (!res.ok) { setErr(res.field, res.error); $('#' + res.field).focus(); return; }
+    toast('Demo account created. Welcome, ' + v('r-name').split(' ')[0] + '.'); go('/app');
+  },
+  async forgot(f) {
+    const email = $('#f-email').value.trim(); if (!setErr('f-email', !isEmail(email) ? 'Enter a valid email address.' : '')) return;
+    const btn = $('button.btn-pri', f); btnLoad(btn, true); await wait(800); btnLoad(btn, false);
+    $('#form-alert').innerHTML = `<div class="alert info" role="status">${ic('info')}<span>Demo only: no email was sent to ${esc(email)}. Password reset needs the server integration. To continue, sign in with the demo account.</span></div>`; icons();
+  },
+  send() { handleSend($('#comp-t').value); },
+  modal() { if (modalOk && modalOk() === false) return; closeModal(); },
+  profile() {
+    const name = $('#p-name').value.trim(), email = $('#p-email').value.trim();
+    if (![setErr('p-name', name.length < 2 ? 'Enter your full name.' : ''), setErr('p-email', !isEmail(email) ? 'Enter a valid email address.' : '')].every(Boolean)) return;
+    authService.saveUser({ ...authService.user(), name, email, timezone: $('#p-tz').value, language: $('#p-lang').value }); toast('Changes saved.'); render();
+  }
+};
+document.addEventListener('submit', e => { const f = e.target.closest('[data-form]'); if (!f) return; e.preventDefault(); forms[f.dataset.form] && forms[f.dataset.form](f); });
+
+let debounce;
+const inputs = {
+  'comp'(t) { ui.draft = t.value; syncComposer(); },
+  'side-q'(t) { ui.sideQ = t.value; $('#recents').innerHTML = recentsHTML(); },
+  'hist-q'(t) { ui.hist.q = t.value; clearTimeout(debounce); debounce = setTimeout(() => { $('#hist-list').innerHTML = histListHTML(); icons(); }, 120); },
+  'src-q'(t) { ui.src.q = t.value; ui.src.shown = 6; clearTimeout(debounce); debounce = setTimeout(() => { $('#src-list').innerHTML = srcListHTML(); icons(); }, 120); }
+};
+document.addEventListener('input', e => { const k = e.target.dataset.input; if (k && inputs[k]) inputs[k](e.target); else if (e.target.getAttribute('aria-invalid') === 'true') setErr(e.target.id, ''); });
+const changes = {
+  'scope'(t) { ui.scope = t.value; },
+  'hist'(t) { ui.hist[t.dataset.key] = t.value; $('#hist-list').innerHTML = histListHTML(); icons(); },
+  'src-sort'(t) { ui.src.sort = t.value; $('#src-list').innerHTML = srcListHTML(); icons(); },
+  'set'(t) { const v = t.type === 'checkbox' ? t.checked : t.value; settingsService.set(t.dataset.key, v); if (t.dataset.key === 'defaultScope') ui.scope = v; toast('Preference saved.'); }
+};
+document.addEventListener('change', e => { const k = e.target.dataset.change; k && changes[k] && changes[k](e.target); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (overlay.innerHTML) return closeModal(); if ($('.menu:not([hidden])')) return closeMenus(); if (ui.panel) return actions['panel-close'](); const s = $('#shell'); s && s.classList.remove('nav-open'); const n = $('#lnav'); n && n.classList.remove('open'); return; }
+  if (e.key === 'Tab' && overlay.innerHTML) { const f = $$('button, input, a[href], select', overlay).filter(x => !x.disabled); if (!f.length) return; const first = f[0], last = f[f.length - 1]; if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } return; }
+  if (e.target.id === 'comp-t' && e.key === 'Enter' && !e.isComposing) { const ets = settingsService.get().enterToSend; if ((ets && !e.shiftKey) || (!ets && (e.ctrlKey || e.metaKey))) { e.preventDefault(); handleSend(e.target.value); } }
+});
+
+/* ==========================================================================
+   BOOT
+   ========================================================================== */
+settingsService.apply();
+if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); mq.addEventListener && mq.addEventListener('change', () => settingsService.apply()); }
+render();
+</script>
+</body>
+</html>
