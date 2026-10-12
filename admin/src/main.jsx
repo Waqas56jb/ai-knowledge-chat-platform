@@ -5,6 +5,9 @@ import { MotionConfig } from 'framer-motion';
 import App from './App';
 import { applyAppearance } from './services/settingsService';
 import './styles/index.css';
+import { installChunkReload } from './utils/chunkReload';
+
+installChunkReload();
 
 applyAppearance();
 // keep "system" theme in sync with the OS

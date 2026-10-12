@@ -5,6 +5,7 @@ import { BreadcrumbProvider } from './hooks/useBreadcrumbs';
 import { ConfirmProvider } from './components/common/ConfirmDialog';
 import { getAppearance, subscribeAppearance } from './services/settingsService';
 import AppRoutes from './routes/AppRoutes';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 const appearanceTheme = () => getAppearance().theme;
 
@@ -19,7 +20,7 @@ export default function App() {
     <AuthProvider>
       <BreadcrumbProvider>
         <ConfirmProvider>
-          <AppRoutes />
+          <ErrorBoundary><AppRoutes /></ErrorBoundary>
           <ThemedToaster />
         </ConfirmProvider>
       </BreadcrumbProvider>
