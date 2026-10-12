@@ -105,13 +105,23 @@ npm run bootstrap-admin -- --email you@company.com --name "Your Name" --generate
 
 With `--generate`, a strong random password is written to `server/.bootstrap-admin-password`. That file is git-ignored and its contents are never printed. Sign in, change the password, then delete the file. The script refuses to run if an admin already exists, unless you pass `--allow-additional`. It also refuses to reuse an existing auth account, unless you pass `--use-existing-auth-user`.
 
-Everyone else joins by invitation: in the admin panel go to **Invitations → New**, then share the one-time link `CLIENT_URL/register?invite=<token>`. No email is sent by the server. Only a hash of each token is stored, and resending an invitation rotates the token.
+Everyone else joins by invitation: in the admin panel go to **Invitations → New**, and the server emails the one-time link `CLIENT_URL/register?invite=<token>` to the invitee. The link is also shown to the admin once, as a backup if the email doesn't arrive. Only a hash of each token is stored, and resending an invitation rotates the token and emails the new link.
 
 ### Supabase Auth settings
 
-- **Password reset:** `POST /auth/forgot-password` sends Supabase's recovery email, which redirects to `CLIENT_URL/reset-password`. Add that URL (and your production equivalent) under **Authentication → URL Configuration → Redirect URLs**, and make sure an email provider is configured. The client's reset page posts the recovery `access_token` to `POST /auth/reset-password`.
+- **Password reset:** `POST /auth/forgot-password` makes a one-time Supabase recovery token on the server and emails our own link, `CLIENT_URL/reset-password?token_hash=…`. The client's reset page posts it to `POST /auth/reset-password`, and the server verifies it with Supabase (`verifyOtp`). No Supabase redirect configuration is needed. If outgoing email is disabled, Supabase's own recovery email is used instead; that link needs `CLIENT_URL/reset-password` in **Authentication → URL Configuration → Redirect URLs**.
 - Accounts created by invitation are confirmed immediately, because the invitation proves the email address.
 - Suspending or revoking a user also bans them in Supabase Auth, so their existing tokens stop working.
+
+### Email
+
+The server sends invitations, password resets and a welcome email through SMTP (nodemailer). The templates are branded HTML with a plain-text version, in `src/services/mail.service.js`.
+
+- Configure it in `server/.env`: `MAIL_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM_NAME`. Optionally also `MAIL_FROM_EMAIL` and `MAIL_REPLY_TO`.
+- For Gmail, use `smtp.gmail.com:465` and an **App Password** (Google Account → Security → 2-Step Verification → App passwords), not the normal account password.
+- To check the setup, run `npm run verify-config` (SMTP login) and `npm run mail:test -- --to you@domain --type notice|invitation|reset|welcome`.
+- A mail failure never breaks a user flow. If an invitation email fails, the admin is told and still gets the link.
+- Recipients on reserved test domains (`MAIL_SKIP_DOMAINS`, e.g. `example.test`) are never emailed, and the automated tests run with mail disabled.
 
 ### Storage
 
@@ -198,7 +208,7 @@ npm run test:live        # end-to-end against the running server with real OpenA
 ## Limitations
 
 - No OCR for scanned PDFs, and no audio transcription for YouTube videos without captions; paste a transcript instead.
-- Invitation and notification emails are not sent by the server. Invitation links are shared manually, and password-reset email uses Supabase's mailer.
+- Email goes through one SMTP account (Gmail allows about 500 messages a day). For larger volumes, switch `SMTP_*` to a transactional provider such as SES, Postmark or Mailgun.
 - Retrieval uses RRF fusion of vector and full-text results, with no separate cross-encoder reranker.
 - Rate limits are kept in process memory. Use a shared store if you run several instances and need global limits.
 
@@ -212,4 +222,5 @@ npm run test:live        # end-to-end against the running server with real OpenA
 | `AI_UNAVAILABLE` / `QUOTA_EXCEEDED` | OpenAI key, quota or network problem. The question is saved; retry with the same `clientMessageId`. |
 | YouTube job fails with "no captions" | Add the video again and paste its transcript. |
 | Sources stuck in `processing` | Make sure `WORKER_ENABLED=true`. Stale jobs are re-queued after `JOB_STALE_MINUTES`. |
-| Password reset link opens the wrong page | Add `CLIENT_URL/reset-password` to the Supabase redirect URLs. |
+| Emails are not arriving | Run `npm run verify-config` (SMTP login) and `npm run mail:test -- --to you@domain`. For Gmail, `SMTP_PASS` must be an App Password; check the recipient's spam folder. |
+| Password reset link says invalid or expired | Reset links work once and expire after about an hour. Request a new one. |

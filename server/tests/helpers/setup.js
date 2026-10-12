@@ -20,7 +20,7 @@ export { fakeVector } from './fakeVector.js';
 
 /** Create a confirmed auth user + app profile, then sign in through the API. */
 export async function makeUser(role = 'member', status = 'active') {
-  const email = `${RUN}-${role}-${crypto.randomBytes(2).toString('hex')}@nexusai.app`;
+  const email = `${RUN}-${role}-${crypto.randomBytes(2).toString('hex')}@example.test`;
   const password = `Test-${crypto.randomBytes(8).toString('base64url')}1a`;
   const { data, error } = await supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error) throw error;

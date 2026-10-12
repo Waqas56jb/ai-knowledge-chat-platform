@@ -6,6 +6,7 @@ import { env, configuredSecrets } from '../src/config/env.js';
 import { pool } from '../src/config/database.js';
 import { supabaseAdmin } from '../src/config/supabase.js';
 import { openai, AI } from '../src/config/openai.js';
+import { mailEnabled, verifyMail, closeMail } from '../src/services/mail.service.js';
 
 const ok = (m) => console.log(`  ✓ ${m}`);
 const bad = (m) => { console.log(`  ✗ ${m}`); process.exitCode = 1; };
@@ -46,6 +47,14 @@ try {
   const r = await openai.embeddings.create({ model: AI.embeddingModel, input: ['configuration check'] });
   r.data[0].embedding.length === AI.embeddingDimensions ? ok(`embeddings OK (${r.data[0].embedding.length} dims)`) : bad(`embedding dims ${r.data[0].embedding.length} ≠ ${AI.embeddingDimensions}`);
 } catch (e) { bad(`OpenAI: ${e.status || ''} ${e.code || e.message}`); }
+
+console.log('\nEmail');
+if (!mailEnabled()) console.log('  ! outgoing email is disabled (MAIL_ENABLED=false): invitation links must be shared manually');
+else {
+  const v = await verifyMail();
+  v.ok ? ok(`SMTP login OK (${env.SMTP_HOST}:${env.SMTP_PORT}, sending as ${env.MAIL_FROM_EMAIL || env.SMTP_USER})`) : bad(`SMTP: ${v.reason}`);
+  closeMail();
+}
 
 await pool.end();
 console.log(process.exitCode ? '\nSome checks failed.' : '\nAll checks passed.');

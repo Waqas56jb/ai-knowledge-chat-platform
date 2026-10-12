@@ -88,4 +88,4 @@ export const env = Object.freeze({
 });
 
 /** Names (not values) of configured secrets, for diagnostics. */
-export const configuredSecrets = () => ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY', 'DATABASE_URL', 'OPENAI_API_KEY', 'SMTP_PASS'].map(k => ({ name: k, set: !!process.env[k] }));
+export const configuredSecrets = () => ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY', 'DATABASE_URL', 'OPENAI_API_KEY', ...(e.MAIL_ENABLED ? ['SMTP_USER', 'SMTP_PASS'] : [])].map(k => ({ name: k, set: !!process.env[k] }));

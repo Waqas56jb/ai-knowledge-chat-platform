@@ -4,7 +4,7 @@ import { InfoBadge } from '../common/StatusBadge';
 import { ROLE_INFO } from '../users/roles';
 import { roleLabel } from '../../constants/domain';
 
-/** Preview of the invitation the recipient will see. No email is sent: the admin shares the link. */
+/** Preview of the invitation email the recipient will receive. */
 export default function InvitationPreview({ email, role, expiryLabel, message, inviterName, workspaceName }) {
   const recipient = email?.trim() || 'recipient@company.com';
   return (
@@ -27,7 +27,7 @@ export default function InvitationPreview({ email, role, expiryLabel, message, i
             The secure link is generated when you create the invitation. It expires in {expiryLabel || '7 days'}.
           </p>
         </div>
-        <p className="mt-3 text-[12px] text-faint">No email is delivered. After creating the invitation, copy the link and share it with the recipient.</p>
+        <p className="mt-3 text-[12px] text-faint">This is emailed to the recipient when you create the invitation.</p>
       </div>
     </Card>
   );

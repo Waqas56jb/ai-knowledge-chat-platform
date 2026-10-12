@@ -3,7 +3,7 @@
  *   npm start            (in another terminal)
  *   npm run test:live
  *
- * Creates clearly-labelled test data (emails nexus-e2e-<run>-*@nexusai.app, titles "(e2e <run>)"),
+ * Creates clearly-labelled test data (emails nexus-e2e-<run>-*@example.test, titles "(e2e <run>)"),
  * verifies the whole system, then deletes everything it created. Audit log entries remain because the
  * audit table is append-only by design. Uses the bootstrap admin from server/.bootstrap-admin-password.
  */
@@ -63,7 +63,7 @@ async function main() {
   const adminMe = (await call('GET', '/auth/me', { token: A })).data.user;
 
   section('2. Invitation-only registration');
-  const memberEmail = `nexus-e2e-${RUN}-member@nexusai.app`, roEmail = `nexus-e2e-${RUN}-reader@nexusai.app`;
+  const memberEmail = `nexus-e2e-${RUN}-member@example.test`, roEmail = `nexus-e2e-${RUN}-reader@example.test`;
   const memberPw = pw(), roPw = pw();
   const inv1 = await call('POST', '/admin/invitations', { token: A, body: { email: memberEmail, role: 'member', expiresInDays: 3, message: 'Welcome (e2e)' } });
   check('admin creates an invitation (token returned once)', inv1.status === 201 && inv1.data.token?.startsWith('nxs_') && inv1.data.url?.includes('/register?invite='), inv1.error);
@@ -75,7 +75,7 @@ async function main() {
   const v1 = await call('POST', '/auth/validate-invitation', { body: { token: raw1 } });
   check('invitation validates and reveals the bound email', v1.status === 200 && v1.data.email === memberEmail, v1.error);
   check('random token is invalid', (await call('POST', '/auth/validate-invitation', { body: { token: 'nxs_' + crypto.randomBytes(32).toString('base64url') } })).error?.code === 'INVITATION_INVALID');
-  const mismatch = await call('POST', '/auth/accept-invitation', { body: { token: raw1, email: `other-${RUN}@nexusai.app`, fullName: 'Member E2E', password: memberPw } });
+  const mismatch = await call('POST', '/auth/accept-invitation', { body: { token: raw1, email: `other-${RUN}@example.test`, fullName: 'Member E2E', password: memberPw } });
   check('acceptance with a different email is refused', mismatch.error?.code === 'INVITATION_EMAIL_MISMATCH', mismatch.error);
   check('weak password is refused', (await call('POST', '/auth/accept-invitation', { body: { token: raw1, fullName: 'Member E2E', password: 'short' } })).status === 422);
   const acc1 = await call('POST', '/auth/accept-invitation', { body: { token: raw1, fullName: 'Member E2E', password: memberPw } });
@@ -89,13 +89,13 @@ async function main() {
   check('read-only account created', acc2.status === 201 && acc2.data.user.role === 'readonly', acc2.error);
   const R = acc2.data.accessToken, roId = acc2.data.user.id; created.users.push(roId);
 
-  const inv3 = await call('POST', '/admin/invitations', { token: A, body: { email: `nexus-e2e-${RUN}-revoked@nexusai.app`, role: 'member' } });
+  const inv3 = await call('POST', '/admin/invitations', { token: A, body: { email: `nexus-e2e-${RUN}-revoked@example.test`, role: 'member' } });
   created.invitations.push(inv3.data?.id);
   check('admin revokes a pending invitation', (await call('POST', `/admin/invitations/${inv3.data.id}/revoke`, { token: A })).data?.status === 'revoked');
   check('revoked invitation cannot be accepted', (await call('POST', '/auth/accept-invitation', { body: { token: inv3.data.token, fullName: 'Nope', password: pw() } })).error?.code === 'INVITATION_REVOKED');
   check('revoked invitation cannot be resent', (await call('POST', `/admin/invitations/${inv3.data.id}/resend`, { token: A, body: {} })).status === 409);
 
-  const inv4 = await call('POST', '/admin/invitations', { token: A, body: { email: `nexus-e2e-${RUN}-rotate@nexusai.app`, role: 'member' } });
+  const inv4 = await call('POST', '/admin/invitations', { token: A, body: { email: `nexus-e2e-${RUN}-rotate@example.test`, role: 'member' } });
   created.invitations.push(inv4.data?.id);
   const re4 = await call('POST', `/admin/invitations/${inv4.data.id}/resend`, { token: A, body: {} });
   check('resend rotates the token', re4.status === 200 && re4.data.token && re4.data.token !== inv4.data.token && re4.data.resendCount === 1);
@@ -104,7 +104,7 @@ async function main() {
   check('new token works after resend', v4.status === 200, { status: v4.status, code: v4.error?.code });
   await call('POST', `/admin/invitations/${inv4.data.id}/revoke`, { token: A });
   await db.query("update public.ai_knowledge_chat_invitations set expires_at = now() - interval '1 minute' where id = $1", [inv2.data.id]); // accepted already: expiry irrelevant
-  const inv5 = await call('POST', '/admin/invitations', { token: A, body: { email: `nexus-e2e-${RUN}-expired@nexusai.app`, role: 'member' } });
+  const inv5 = await call('POST', '/admin/invitations', { token: A, body: { email: `nexus-e2e-${RUN}-expired@example.test`, role: 'member' } });
   created.invitations.push(inv5.data?.id);
   await db.query("update public.ai_knowledge_chat_invitations set expires_at = now() - interval '1 minute' where id = $1", [inv5.data.id]);
   const late = await call('POST', '/auth/accept-invitation', { body: { token: inv5.data.token, fullName: 'Late', password: pw() } });
@@ -115,7 +115,7 @@ async function main() {
 
   section('3. Role-based access control');
   check('member cannot list users', (await call('GET', '/admin/users', { token: M })).status === 403);
-  check('member cannot create invitations', (await call('POST', '/admin/invitations', { token: M, body: { email: `x-${RUN}@nexusai.app`, role: 'admin' } })).status === 403);
+  check('member cannot create invitations', (await call('POST', '/admin/invitations', { token: M, body: { email: `x-${RUN}@example.test`, role: 'admin' } })).status === 403);
   check('member cannot read audit logs', (await call('GET', '/admin/audit-logs', { token: M })).status === 403);
   check('member cannot add knowledge', (await call('POST', '/admin/knowledge/text', { token: M, body: { title: 'x', text: 'x'.repeat(50) } })).status === 403);
   check('member cannot promote themselves via profile', (await call('PATCH', '/users/me', { token: M, body: { role: 'admin' } })).status === 422);

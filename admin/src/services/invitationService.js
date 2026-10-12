@@ -1,7 +1,7 @@
 /**
  * Invitations — /admin/invitations. The server creates and hashes the token; the plain `token` and
- * `url` are returned only by create and resend, so the UI shows them once. No email is sent: the
- * administrator shares the link.
+ * `url` are returned only by create and resend, so the UI shows them once. The server emails the link
+ * to the invitee (`emailSent`); the link is still shown so it can be shared manually if delivery failed.
  */
 import { apiGet, apiList, apiPost, downloadCsv } from './api';
 
@@ -34,7 +34,7 @@ export async function getInvitationStats() {
   return { total: 0, pending: 0, accepted: 0, expired: 0, revoked: 0, ...(meta.stats || {}) };
 }
 
-/** payload: { email, role, expiresInDays, message, note } → Invitation & { token, url, delivery } */
+/** payload: { email, role, expiresInDays, message, note } → Invitation & { token, url, delivery, emailSent, emailError } */
 export async function createInvitation(payload) {
   const body = { email: payload.email.trim().toLowerCase(), role: payload.role, expiresInDays: Number(payload.expiresInDays) || undefined };
   if (payload.message && payload.message.trim()) body.message = payload.message.trim();

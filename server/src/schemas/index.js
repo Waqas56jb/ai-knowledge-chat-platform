@@ -21,7 +21,8 @@ export const sourceIdParam = z.object({ sourceId: uuid });
 export const loginBody = z.object({ email, password: z.string().min(1).max(200) }).strict();
 export const refreshBody = z.object({ refreshToken: z.string().min(10).max(4096) }).strict();
 export const forgotBody = z.object({ email }).strict();
-export const resetBody = z.object({ accessToken: z.string().min(20).max(4096), password }).strict();
+export const resetBody = z.object({ accessToken: z.string().min(20).max(4096).optional(), tokenHash: z.string().min(10).max(512).optional(), password }).strict()
+  .refine(v => !!v.accessToken !== !!v.tokenHash, { message: 'Provide the reset link token.' });
 export const inviteTokenBody = z.object({ token: z.string().trim().min(20).max(200) }).strict();
 export const acceptInviteBody = z.object({ token: z.string().trim().min(20).max(200), email: email.optional(), fullName: name, password }).strict();
 

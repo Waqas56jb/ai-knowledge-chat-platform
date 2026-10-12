@@ -26,7 +26,7 @@ export function InvitationLink({ invitation, compact = false }) {
       </div>
       <div role="alert" className="flex gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-[13px]">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-        <p className="text-ink"><b className="font-semibold">Copy it now — it won&apos;t be shown again.</b> <span className="text-muted">Only a hash of the token is stored. No email is sent: share this link with the recipient yourself. If it is lost, resend the invitation to generate a new link.</span></p>
+        <p className="text-ink"><b className="font-semibold">Copy it now — it won&apos;t be shown again.</b> <span className="text-muted">Only a hash of the token is stored. {invitation.emailSent ? 'The link was also emailed to the recipient.' : 'The email could not be sent, so share this link with the recipient yourself.'} If it is lost, resend the invitation to generate a new link.</span></p>
       </div>
     </div>
   );
@@ -40,7 +40,9 @@ export default function InvitationSuccess({ invitation, onCreateAnother }) {
         <span className="grid h-12 w-12 place-items-center rounded-full bg-success-soft text-success"><CheckCircle2 className="h-6 w-6" aria-hidden="true" /></span>
         <h2 className="mt-3 text-[19px] font-semibold">Invitation created</h2>
         <p className="mt-1 max-w-md text-[13.5px] text-muted">
-          Share the link below with <b className="font-semibold text-ink">{invitation.email}</b>. No email was sent.
+          {invitation.emailSent
+            ? <>An invitation email was sent to <b className="font-semibold text-ink">{invitation.email}</b>. The link below is a backup in case it doesn&apos;t arrive.</>
+            : <>The email to <b className="font-semibold text-ink">{invitation.email}</b> could not be sent{invitation.emailError ? ` (${invitation.emailError})` : ''}. Share the link below with them yourself.</>}
         </p>
         <div className="mt-3 flex flex-wrap justify-center gap-2"><StatusBadge status={invitation.status} /><RoleBadge role={invitation.role} /></div>
       </div>

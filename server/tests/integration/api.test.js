@@ -18,6 +18,7 @@ const { pool, one } = await import('../../src/config/database.js');
 const { retrieve } = await import('../../src/services/retrieval.service.js');
 const { claimNextJob } = await import('../../src/services/processing.service.js');
 const { runJob } = await import('../../src/jobs/processSource.job.js');
+const { supabaseAdmin } = await import('../../src/config/supabase.js');
 
 let admin, member, other, reader, workspaceSrc, privateSrc;
 const auth = u => ({ Authorization: `Bearer ${u.token}` });
@@ -75,12 +76,31 @@ describe('authentication and roles', () => {
     expect((await api().get(`${P}/admin/users`).set(auth(admin))).status).toBe(200);
   });
   it('admin can create invitations, members cannot', async () => {
-    const r = await api().post(`${P}/admin/invitations`).set(auth(admin)).send({ email: `${RUN}-invite@nexusai.app`, role: 'member' });
+    const r = await api().post(`${P}/admin/invitations`).set(auth(admin)).send({ email: `${RUN}-invite@example.test`, role: 'member' });
     expect(r.status).toBe(201);
     expect(r.body.data.token).toMatch(/^nxs_/);
-    expect((await api().post(`${P}/admin/invitations`).set(auth(member)).send({ email: `${RUN}-x@nexusai.app`, role: 'admin' })).status).toBe(403);
+    // mail is disabled in tests: the admin gets the link to share manually
+    expect(r.body.data).toMatchObject({ delivery: 'manual', emailSent: false });
+    expect((await api().post(`${P}/admin/invitations`).set(auth(member)).send({ email: `${RUN}-x@example.test`, role: 'admin' })).status).toBe(403);
     const audit = await one(`select count(*)::int as n from public.ai_knowledge_chat_audit_logs where action = 'invitation.created' and entity_id = $1`, [r.body.data.id]);
     expect(audit.n).toBe(1);
+  });
+  it('password reset with the one-time token from our reset email', async () => {
+    const u = await makeUser('member');
+    expect((await api().post(`${P}/auth/forgot-password`).send({ email: u.email })).status).toBe(200);
+    expect((await api().post(`${P}/auth/reset-password`).send({ password: 'NewPassw0rd' })).status).toBe(422);
+    const bad = await api().post(`${P}/auth/reset-password`).send({ tokenHash: 'not-a-real-token-hash', password: 'NewPassw0rd' });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.code).toBe('RESET_LINK_INVALID');
+    // the same token the server would email (generated server-side, never exposed to other users)
+    const { data } = await supabaseAdmin.auth.admin.generateLink({ type: 'recovery', email: u.email });
+    const tokenHash = data.properties.hashed_token;
+    const ok = await api().post(`${P}/auth/reset-password`).send({ tokenHash, password: 'NewPassw0rd9' });
+    expect(ok.status).toBe(200);
+    expect((await api().post(`${P}/auth/login`).send({ email: u.email, password: 'NewPassw0rd9' })).status).toBe(200);
+    expect((await api().post(`${P}/auth/login`).send({ email: u.email, password: u.password })).status).toBe(401);
+    // one-time: the link cannot be reused
+    expect((await api().post(`${P}/auth/reset-password`).send({ tokenHash, password: 'Another1pass' })).status).toBe(400);
   });
   it('read-only users cannot chat or create conversations', async () => {
     expect((await api().post(`${P}/chat`).set(auth(reader)).send({ message: 'What is the discount policy?' })).status).toBe(403);

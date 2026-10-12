@@ -120,7 +120,7 @@ export default function InvitationsPage() {
         <Pagination table={table} label="invitations" />
       </Card>
 
-      <Notice className="mt-6" title="No email is sent">Invitation links are shown once, when you create or resend an invitation. Copy the link and share it with the recipient yourself.</Notice>
+      <Notice className="mt-6" title="Invitations are sent by email">Creating or resending an invitation emails a secure link to the recipient. The link is also shown to you once, as a backup.</Notice>
 
       <InvitationDetailModal invitationId={focusId} onClose={closeDetail} />
       {actions.modals}

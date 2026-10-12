@@ -67,7 +67,7 @@ export default function InvitationDetailModal({ invitationId, onClose }) {
               inv.revokedAt && ['Revoked', formatDateTime(inv.revokedAt)],
               ['Last sent', formatDateTime(inv.lastSentAt)],
               ['Resent', inv.resendCount ? pluralize(inv.resendCount, 'time') : 'Never'],
-              ['Delivery', 'Manual — no email is sent'],
+              ['Delivery', 'Email (link also shown once to the admin)'],
               inv.userId && ['User record', <Link key="u" to={`/admin/users/${inv.userId}`} className="link" onClick={onClose}>View user</Link>]
             ]} />
 
@@ -76,7 +76,7 @@ export default function InvitationDetailModal({ invitationId, onClose }) {
               <TextBlock label="Internal note" value={inv.note} empty="No internal note." />
             </div>
 
-            <Notice title="No email is sent">Share the invitation link with the recipient yourself. The link is shown only when the invitation is created or resent.</Notice>
+            <Notice title="Need a new link?">For security only a hash of the link is stored. Resend the invitation to email a new link; the previous one stops working.</Notice>
           </div>
         )}
     </Modal>

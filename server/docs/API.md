@@ -21,7 +21,7 @@ Base URL (development): `http://localhost:4001/api/v1` — frontends read it fro
 | `POST /auth/logout` (auth) | — | `{ signedOut: true }` |
 | `GET /auth/me` (auth) | — | `{ user: Profile, settings: PublicSettings }` |
 | `POST /auth/forgot-password` | `{ email }` | `{ message }` (always 200) |
-| `POST /auth/reset-password` | `{ accessToken, password }` — `accessToken` comes from the Supabase recovery link (`#access_token=…&type=recovery`) | `{ message }` |
+| `POST /auth/reset-password` | `{ tokenHash, password }`: `tokenHash` comes from our reset email link (`/reset-password?token_hash=…&type=recovery`). Alternatively `{ accessToken, password }` from a Supabase recovery link (`#access_token=…`). | `{ message }`, or 400 `RESET_LINK_INVALID` (link used or expired) |
 | `POST /auth/validate-invitation` | `{ token }` | `{ email, role, expiresAt }` or 400 `INVITATION_INVALID / _EXPIRED / _REVOKED / _USED` |
 | `POST /auth/accept-invitation` (alias `POST /auth/register`) | `{ token, fullName, password, email? }` | 201 `Session` (signed in) |
 
@@ -115,7 +115,7 @@ Authentication, role, rate-limit and body-validation failures happen before the 
 
 ### Invitations `/admin/invitations`
 - `GET ?q=&status=pending|accepted|expired|revoked&page=&pageSize=&format=csv` → `Invitation[]`, `meta.stats: { total, pending, accepted, expired, revoked }`
-- `POST` `{ email, role, expiresInDays?, message?, note? }` → 201 `Invitation & { token, url, delivery: 'manual' }` — **the token/url are returned only here and on resend** (only a hash is stored). No email is sent: the admin shares the link.
+- `POST` `{ email, role, expiresInDays?, message?, note? }` → 201 `Invitation & { token, url, delivery: 'email'|'manual', emailSent, emailError }`. The link is emailed to the invitee. **The token and url are returned only here and on resend**, because only a hash is stored. If `emailSent` is false, the admin shares the link manually.
 - `GET /:id`, `POST /:id/resend` `{ expiresInDays? }` (rotates the token → returns new `token` + `url`), `POST /:id/revoke`
 
 `Invitation = { id, email, role, status, codeHint (last 4 chars), invitedBy, invitedByName, message, note, createdAt, expiresAt, acceptedAt, acceptedBy, revokedAt, resendCount, lastSentAt }`

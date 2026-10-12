@@ -20,15 +20,16 @@ export function useInvitationActions({ onView } = {}) {
   const resend = async inv => {
     const ok = await confirm({
       title: inv.status === 'expired' ? 'Renew this invitation?' : 'Resend this invitation?',
-      message: <>A new link is generated for <b className="text-ink">{inv.email}</b> and the previous link stops working. No email is sent: you will copy the new link and share it.</>,
-      confirmLabel: inv.status === 'expired' ? 'Renew and get link' : 'Resend and get link'
+      message: <>A new link is generated for <b className="text-ink">{inv.email}</b> and the previous link stops working. The new link is emailed to them and also shown here.</>,
+      confirmLabel: inv.status === 'expired' ? 'Renew and send' : 'Resend invitation'
     });
     if (!ok) return null;
     setBusy(`resend-${inv.id}`);
     try {
       const fresh = await resendInvitation(inv.id);
       setRevealed(fresh);
-      toast.success(inv.status === 'expired' ? 'Invitation renewed.' : 'Invitation resent.', { description: 'Copy the new link — it is shown only once.' });
+      if (fresh.emailSent) toast.success(inv.status === 'expired' ? 'Invitation renewed and emailed.' : 'Invitation resent by email.', { description: `Sent to ${fresh.email}. The new link is also shown once.` });
+      else toast.warning('Invitation renewed, but the email could not be sent.', { description: 'Copy the new link and share it yourself — it is shown only once.' });
       return fresh;
     } catch (err) { toast.error(err.message); return null; } finally { setBusy(null); }
   };

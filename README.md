@@ -23,7 +23,7 @@ cd client && npm install && npm run dev      # .env: VITE_API_BASE_URL=http://lo
 cd admin && npm install && npm run dev       # same VITE_API_BASE_URL
 ```
 
-The first admin is created from the CLI with `npm run bootstrap-admin` in `server/`; there are no built-in credentials. Everyone else joins through an invitation link that an admin creates in the admin panel.
+The first admin is created from the CLI with `npm run bootstrap-admin` in `server/`; there are no built-in credentials. Everyone else joins through an invitation that an admin creates in the admin panel. The link is emailed to them (Gmail SMTP, configured in `server/.env`), and password-reset emails work the same way.
 
 ## Docs
 

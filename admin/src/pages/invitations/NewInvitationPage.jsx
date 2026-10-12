@@ -49,7 +49,8 @@ export default function NewInvitationPage() {
     try {
       const inv = await createInvitation({ ...v, message: v.message?.trim() || '', note: v.note?.trim() || '' });
       setCreated(inv);
-      toast.success('Invitation created.', { description: `Copy the link and share it with ${inv.email} — no email is sent.` });
+      if (inv.emailSent) toast.success('Invitation sent.', { description: `An invitation email was sent to ${inv.email}.` });
+      else toast.warning('Invitation created, but the email could not be sent.', { description: `Copy the link and share it with ${inv.email}.` });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       if (err.status === 409 || err.status === 422 || /email|invitation/i.test(err.message)) { setError('email', { message: err.message }); setFocus('email'); }
@@ -63,7 +64,7 @@ export default function NewInvitationPage() {
       <Link to="/admin/invitations" className="mb-4 inline-flex items-center gap-1.5 rounded text-[13px] font-medium text-muted transition hover:text-ink">
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />Back to invitations
       </Link>
-      <PageHeader title="New invitation" description="Invite someone to the workspace with a role and an expiry. You will get a secure link to share; no email is sent." />
+      <PageHeader title="New invitation" description="Invite someone to the workspace with a role and an expiry. The invitation is emailed to them with a secure link." />
 
       {created ? (
         <div className="mx-auto max-w-2xl"><InvitationSuccess invitation={created} onCreateAnother={createAnother} /></div>
@@ -104,7 +105,7 @@ export default function NewInvitationPage() {
           <div className="space-y-4 lg:sticky lg:top-20 lg:col-span-2">
             <InvitationPreview email={values.email} role={values.role} expiryLabel={expiryLabel} message={values.message}
               inviterName={name || 'An administrator'} workspaceName={workspaceName} />
-            <Notice title="No email is sent">After you create the invitation you get a one-time link and token. Copy them and share them with the recipient; they are not shown again.</Notice>
+            <Notice title="Sent by email">The recipient gets an email with a secure link. The link and token are also shown to you once, as a backup if the email doesn&apos;t arrive.</Notice>
           </div>
         </div>
       )}

@@ -1,27 +1,37 @@
 /**
  * Invitations. A cryptographically random token is generated and returned to the admin exactly
  * once (on create/resend); only its SHA-256 hash is stored. Resend ROTATES the token (the old link
- * stops working). No email is sent by this service: the admin shares the link (see README).
+ * stops working). The link is emailed to the invitee when mail is enabled (MAIL_ENABLED); it is also
+ * returned to the admin so it can be shared manually if delivery fails.
  */
-import { one, many, tx } from '../config/database.js';
+import { one, many, tx, query } from '../config/database.js';
 import { T } from '../config/constants.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 import { newToken } from '../utils/sanitize.js';
 import { recordAudit } from './audit.service.js';
 import { getSettings } from './settings.service.js';
+import { sendMail, invitationEmail } from './mail.service.js';
 
 export const inviteUrl = raw => `${env.CLIENT_URL}/register?invite=${encodeURIComponent(raw)}`;
 
 const STATUS_SQL = `case when i.revoked_at is not null then 'revoked' when i.accepted_at is not null then 'accepted' when i.expires_at <= now() then 'expired' else 'pending' end`;
 
-export const invitationOut = (i, raw) => i && ({
+export const invitationOut = (i, raw, delivery) => i && ({
   id: i.id, email: i.email, role: i.role, status: i.status, codeHint: i.token_hint,
   invitedBy: i.invited_by, invitedByName: i.invited_by_name || null, message: i.message, note: i.note,
   createdAt: i.created_at, expiresAt: i.expires_at, acceptedAt: i.accepted_at, acceptedBy: i.accepted_by, revokedAt: i.revoked_at,
   resendCount: i.resend_count, lastSentAt: i.last_sent_at,
-  ...(raw ? { token: raw, url: inviteUrl(raw), delivery: 'manual' } : {})
+  ...(raw ? { token: raw, url: inviteUrl(raw), delivery: delivery?.sent ? 'email' : 'manual', emailSent: !!delivery?.sent, emailError: delivery?.error || null } : {})
 });
+
+/** Email the invitation link. Never throws: on failure the admin still gets the link to share manually. */
+async function deliverInvitation(row, raw, inviterName) {
+  const mail = invitationEmail({ inviterName, role: row.role, url: inviteUrl(raw), expiresAt: row.expires_at, message: row.message });
+  const r = await sendMail({ to: row.email, ...mail, category: 'invitation' });
+  if (r.sent) await query(`update ${T.invitations} set last_sent_at = now() where id = $1`, [row.id]).catch(() => {});
+  return r;
+}
 
 const SELECT = `select i.*, ${STATUS_SQL} as status, p.full_name as invited_by_name from ${T.invitations} i left join ${T.profiles} p on p.id = i.invited_by`;
 
@@ -67,7 +77,8 @@ export async function createInvitation(payload, actor, req) {
     await recordAudit({ actor, action: 'invitation.created', entityType: 'invitation', entityId: r.id, entityLabel: email, details: { role: payload.role, expiresInDays: days }, req }, db);
     return r;
   });
-  return invitationOut({ ...row, invited_by_name: actor.full_name }, t.raw);
+  const delivery = await deliverInvitation(row, t.raw, actor.full_name);
+  return invitationOut({ ...row, invited_by_name: actor.full_name }, t.raw, delivery);
 }
 
 /** Rotate the token and extend the expiry. Only for not-yet-accepted, not-revoked invitations. */
@@ -83,7 +94,8 @@ export async function resendInvitation(id, actor, req, expiresInDays) {
      where id = $1 and accepted_at is null and revoked_at is null returning *, 'pending' as status`, [id, t.hash, t.hint, String(days)]);
   if (!row) throw ApiError.conflict('The invitation changed state. Refresh and try again.');
   await recordAudit({ actor, action: 'invitation.resent', entityType: 'invitation', entityId: id, entityLabel: inv.email, details: { tokenRotated: true, expiresInDays: days }, req });
-  return invitationOut({ ...row, invited_by_name: inv.invited_by_name }, t.raw);
+  const delivery = await deliverInvitation(row, t.raw, actor.full_name || inv.invited_by_name);
+  return invitationOut({ ...row, invited_by_name: inv.invited_by_name }, t.raw, delivery);
 }
 
 export async function revokeInvitation(id, actor, req) {

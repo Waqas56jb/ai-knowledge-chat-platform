@@ -10,6 +10,6 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   await auth.forgotPassword(req.body.email, auth.RESET_REDIRECT, req);
   ok(res, { message: 'If an active account exists for this email, a password reset link has been sent.' });
 });
-export const resetPassword = asyncHandler(async (req, res) => { await auth.resetPassword(req.body.accessToken, req.body.password, req); ok(res, { message: 'Password updated. Sign in with the new password.' }); });
+export const resetPassword = asyncHandler(async (req, res) => { await auth.resetPassword({ accessToken: req.body.accessToken, tokenHash: req.body.tokenHash }, req.body.password, req); ok(res, { message: 'Password updated. Sign in with the new password.' }); });
 export const validateInvitation = asyncHandler(async (req, res) => ok(res, await auth.validateInvitation(req.body.token)));
 export const acceptInvitation = asyncHandler(async (req, res) => ok(res, await auth.acceptInvitation(req.body, req), undefined, 201));

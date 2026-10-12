@@ -16,7 +16,8 @@ export const authService = {
     try { await api.post('/auth/logout'); } finally { sessionStorageApi.clear(); }
   },
   forgotPassword: email => api.post('/auth/forgot-password', { email }, { auth: false }),
-  resetPassword: (accessToken, password) => api.post('/auth/reset-password', { accessToken, password }, { auth: false }),
+  /** link: { tokenHash } from our reset email (?token_hash=…) or { accessToken } from a Supabase recovery link (#access_token=…) */
+  resetPassword: (link, password) => api.post('/auth/reset-password', { ...(link.tokenHash ? { tokenHash: link.tokenHash } : { accessToken: link.token }), password }, { auth: false }),
   validateInvitation: token => api.post('/auth/validate-invitation', { token }, { auth: false }),
   async acceptInvitation({ token, fullName, password }) {
     const s = await api.post('/auth/accept-invitation', { token, fullName, password }, { auth: false });

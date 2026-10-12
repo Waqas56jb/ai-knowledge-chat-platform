@@ -15,6 +15,7 @@ import { recordAudit } from './audit.service.js';
 import { notifyAdmins } from './notification.service.js';
 import { loadProfile, forgetToken, verifyAccessToken } from '../middleware/authenticate.js';
 import { logger } from '../utils/logger.js';
+import { mailEnabled, sendMail, passwordResetEmail, welcomeEmail } from './mail.service.js';
 
 export const publicProfile = p => p && ({
   id: p.id, email: p.email, fullName: p.full_name, role: p.role, status: p.status, avatarUrl: p.avatar_url,
@@ -66,16 +67,42 @@ export async function logout(user, accessToken, req) {
 
 /** Always returns success to avoid revealing which emails have accounts. */
 export async function forgotPassword(email, redirectTo, req) {
-  const profile = await one(`select id from ${T.profiles} where lower(email) = lower($1) and status = 'active'`, [email]);
-  if (profile) {
-    const { error } = await createAuthClient().auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) logger.warn({ code: error.code, status: error.status }, 'password reset email failed');
-    await recordAudit({ action: 'auth.password_reset_requested', entityType: 'auth', entityId: profile.id, entityLabel: email, req });
-  }
+  const profile = await one(`select id, full_name from ${T.profiles} where lower(email) = lower($1) and status = 'active'`, [email]);
+  if (!profile) return;
+  await recordAudit({ action: 'auth.password_reset_requested', entityType: 'auth', entityId: profile.id, entityLabel: email, req });
+  // sent in the background so the response time does not reveal whether the account exists
+  sendResetEmail(email, profile, redirectTo).catch(e => logger.warn({ code: e.code }, 'password reset email failed'));
 }
 
-/** Complete a reset: the recovery access token (from the emailed link) proves ownership. */
-export async function resetPassword(recoveryAccessToken, newPassword, req) {
+/**
+ * With mail enabled: a one-time Supabase recovery token is generated server-side and emailed from our own
+ * address as a link straight to CLIENT_URL/reset-password?token_hash=… (no dependency on Supabase redirect
+ * settings or its mailer). Without mail: Supabase's own recovery email is used.
+ */
+async function sendResetEmail(email, profile, redirectTo) {
+  if (!mailEnabled()) {
+    const { error } = await createAuthClient().auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) logger.warn({ code: error.code, status: error.status }, 'password reset email failed');
+    return;
+  }
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({ type: 'recovery', email, options: { redirectTo } });
+  const hashed = data?.properties?.hashed_token;
+  if (error || !hashed) { logger.warn({ code: error?.code, status: error?.status }, 'recovery link could not be generated'); return; }
+  const url = `${redirectTo}?token_hash=${encodeURIComponent(hashed)}&type=recovery`;
+  await sendMail({ to: email, ...passwordResetEmail({ url, name: profile.full_name }), category: 'password_reset' });
+}
+
+/**
+ * Complete a reset. Proof of ownership is either the one-time token_hash from our reset email, or the recovery
+ * access token from a Supabase recovery link (#access_token=…).
+ */
+export async function resetPassword({ accessToken, tokenHash }, newPassword, req) {
+  let recoveryAccessToken = accessToken;
+  if (tokenHash) {
+    const { data, error } = await createAuthClient().auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+    if (error || !data?.session?.access_token) throw new ApiError(400, 'RESET_LINK_INVALID', 'This reset link is invalid or has expired. Request a new one.');
+    recoveryAccessToken = data.session.access_token;
+  }
   const { userId } = await verifyAccessToken(recoveryAccessToken);
   const profile = await loadProfile(userId);
   if (!profile) throw ApiError.forbidden('This account does not have access to NEXUS AI.');
@@ -146,6 +173,7 @@ export async function acceptInvitation({ token, email, fullName, password }, req
       return { userId: data.user.id, email: inv.email };
     });
     createdAuthUserId = null; // committed
+    sendMail({ to: result.email, ...welcomeEmail({ name: fullName, url: `${env.CLIENT_URL}/app` }), category: 'welcome' }).catch(() => {});
     return await login(result.email, password, req);
   } catch (e) {
     if (createdAuthUserId) {
