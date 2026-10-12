@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   DESIGN TOKENS — NEXUS AI admin. Warm ivory light theme (default) and noir dark
+   theme, both with the NEXUS gold accent. Values are "R G B" for Tailwind alpha.
+   ========================================================================== */
+@layer base {
+  :root {
+    --bg: 247 246 242;
+    --surface: 255 255 255;
+    --subtle: 244 242 237;
+    --line: 232 228 219;
+    --ink: 24 22 18;
+    --muted: 104 98 89;
+    --faint: 146 140 130;
+    --primary: 201 163 95;
+    --primary-strong: 168 130 63;
+    --primary-soft: 247 239 222;
+    --primary-fg: 21 18 12;
+    --primary-text: 133 101 40;
+    --success: 22 128 82;
+    --success-soft: 226 244 234;
+    --warning: 168 108 6;
+    --warning-soft: 252 241 216;
+    --danger: 200 60 52;
+    --danger-soft: 252 232 229;
+    --info: 46 108 168;
+    --info-soft: 227 238 249;
+    --sidebar: 14 14 17;
+    --sidebar-line: 38 37 43;
+    --sidebar-text: 231 226 216;
+    --sidebar-muted: 140 134 124;
+    --sidebar-hover: 28 28 33;
+    --shadow: 40 30 10;
+    --chart-1: 201 163 95;
+    --chart-2: 24 22 18;
+    --chart-3: 63 122 107;
+    --chart-4: 122 90 140;
+    --chart-5: 194 69 59;
+    --chart-grid: 232 228 219;
+    color-scheme: light;
+  }
+  .dark {
+    --bg: 9 9 11;
+    --surface: 17 17 20;
+    --subtle: 24 24 28;
+    --line: 38 37 43;
+    --ink: 236 231 221;
+    --muted: 160 154 144;
+    --faint: 115 110 102;
+    --primary: 217 182 118;
+    --primary-strong: 243 220 170;
+    --primary-soft: 40 33 21;
+    --primary-fg: 21 18 12;
+    --primary-text: 231 201 146;
+    --success: 95 209 155;
+    --success-soft: 16 41 28;
+    --warning: 239 191 98;
+    --warning-soft: 51 39 12;
+    --danger: 255 138 126;
+    --danger-soft: 58 23 20;
+    --info: 125 180 236;
+    --info-soft: 16 33 52;
+    --sidebar: 12 12 15;
+    --sidebar-line: 34 33 39;
+    --sidebar-hover: 26 26 31;
+    --shadow: 0 0 0;
+    --chart-1: 217 182 118;
+    --chart-2: 236 231 221;
+    --chart-3: 143 214 192;
+    --chart-4: 214 184 232;
+    --chart-5: 255 154 140;
+    --chart-grid: 38 37 43;
+    color-scheme: dark;
+  }
+
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-bg font-sans text-ink antialiased; font-size: 14.5px; line-height: 1.55; }
+  .density-compact body { font-size: 13.5px; }
+  h1, h2, h3, h4 { @apply font-display tracking-tight text-ink; }
+  :focus-visible { outline: 2px solid rgb(var(--primary)); outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: rgb(var(--primary) / .35); }
+  [hidden] { display: none !important; }
+  * { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
+}
+
+/* ==========================================================================
+   COMPONENT CLASSES — the shared visual vocabulary. Prefer these over ad-hoc
+   utility piles so every page looks the same.
+   ========================================================================== */
+@layer components {
+  /* buttons */
+  .btn { @apply inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-[13.5px] font-semibold transition duration-150 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn svg { @apply h-4 w-4 shrink-0; }
+  .btn-sm { @apply h-8 px-2.5 text-[13px]; }
+  .btn-lg { @apply h-11 px-5 text-[14.5px]; }
+  .btn-primary { @apply text-primary-fg shadow-gold; background-image: linear-gradient(135deg, #f3dcaa, #d9b676 55%, #b48c48); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.05); }
+  .btn-secondary { @apply border border-line bg-surface text-ink shadow-card hover:bg-subtle; }
+  .btn-ghost { @apply text-muted hover:bg-subtle hover:text-ink; }
+  .btn-danger { @apply bg-danger text-white hover:brightness-110; }
+  .dark .btn-danger { color: #1b0b0a; }
+  .btn-danger-ghost { @apply text-danger hover:bg-danger-soft; }
+  .icon-btn { @apply inline-grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-subtle hover:text-ink disabled:opacity-40; }
+  .icon-btn svg { @apply h-[18px] w-[18px]; }
+  .icon-btn-sm { @apply h-8 w-8; }
+  .icon-btn-sm svg { @apply h-4 w-4; }
+
+  /* surfaces */
+  .card { @apply rounded-2xl border border-line bg-surface shadow-card; }
+  .card-pad { @apply p-5; }
+  .card-header { @apply flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4; }
+  .card-title { @apply font-display text-[15px] font-semibold text-ink; }
+  .divider { @apply border-t border-line; }
+
+  /* forms */
+  .label { @apply mb-1.5 block text-[13px] font-medium text-ink; }
+  .input { @apply h-10 w-full rounded-lg border border-line bg-surface px-3 text-[14px] text-ink shadow-sm outline-none transition placeholder:text-faint focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted; }
+  .input[aria-invalid='true'] { @apply border-danger focus:ring-danger/15; }
+  .textarea { @apply input h-auto min-h-[96px] py-2.5 leading-relaxed; }
+  .select { @apply input cursor-pointer appearance-none bg-no-repeat pr-9; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23928c82' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E"); background-position: right 10px center; }
+  .select-sm { @apply h-9 w-auto text-[13.5px]; }
+  .field-error { @apply mt-1.5 text-[12.5px] font-medium text-danger; }
+  .field-help { @apply mt-1.5 text-[12.5px] text-muted; }
+  .checkbox { @apply h-4 w-4 cursor-pointer rounded border-line accent-[rgb(var(--primary-strong))]; }
+
+  /* badges */
+  .badge { @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[12px] font-semibold leading-5; }
+  .badge svg { @apply h-3 w-3; }
+  .badge-dot::before { content: ''; @apply h-1.5 w-1.5 rounded-full bg-current; }
+  .badge-neutral { @apply bg-subtle text-muted; }
+  .badge-primary { @apply bg-primary-soft text-primary-text; }
+  .badge-success { @apply bg-success-soft text-success; }
+  .badge-warning { @apply bg-warning-soft text-warning; }
+  .badge-danger { @apply bg-danger-soft text-danger; }
+  .badge-info { @apply bg-info-soft text-info; }
+
+  /* tables */
+  .table { @apply w-full border-separate border-spacing-0 text-left text-[13.5px]; }
+  .table th { @apply sticky top-0 z-[1] border-b border-line bg-subtle/70 px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wide text-muted backdrop-blur; }
+  .table td { @apply border-b border-line px-4 py-3 align-middle text-ink; }
+  .table tbody tr { @apply transition-colors hover:bg-subtle/60; }
+  .table tbody tr:last-child td { @apply border-b-0; }
+
+  /* misc */
+  .link { @apply font-medium text-primary-text underline-offset-4 hover:underline; }
+  .kbd { @apply rounded border border-line bg-subtle px-1.5 font-mono text-[11px] text-muted; }
+  .skeleton { @apply relative overflow-hidden rounded-md bg-subtle; }
+  .skeleton::after { content: ''; @apply absolute inset-0 -translate-x-full animate-shimmer; background: linear-gradient(90deg, transparent, rgb(var(--surface) / .6), transparent); }
+  .serif-accent { @apply font-serif font-normal italic tracking-normal text-primary-text; }
+  .sr-only-focusable:not(:focus) { @apply sr-only; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+/* Recharts: inherit theme colours */
+.recharts-cartesian-grid line { stroke: rgb(var(--chart-grid)); }
+.recharts-text { fill: rgb(var(--muted)); font-size: 12px; }
+.recharts-legend-item-text { color: rgb(var(--muted)) !important; font-size: 12.5px; }
+.recharts-default-tooltip { display: none; }
