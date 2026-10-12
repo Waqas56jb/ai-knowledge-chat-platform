@@ -25,6 +25,22 @@ cd admin && npm install && npm run dev       # same VITE_API_BASE_URL
 
 The first admin is created from the CLI with `npm run bootstrap-admin` in `server/`; there are no built-in credentials. Everyone else joins through an invitation that an admin creates in the admin panel. The link is emailed to them (Gmail SMTP, configured in `server/.env`), and password-reset emails work the same way.
 
+## Production
+
+| App | URL | Host |
+|---|---|---|
+| User app | https://www.dtsai.live (the apex domain redirects here) | Vercel (`client/`) |
+| Admin panel | https://admin-444.dtsai.live | Vercel (`admin/`) |
+| API | https://ai-knowledge-chat-platform-production.up.railway.app/api/v1 | Railway (`server/`) |
+
+Railway variables for these domains:
+
+- `CLIENT_URL=https://www.dtsai.live`
+- `ADMIN_URL=https://admin-444.dtsai.live`
+- `EXTRA_CORS_ORIGINS=https://dtsai.live`
+
+`CLIENT_URL` also sets the base for invitation and password-reset links.
+
 ## Docs
 
 - [server/README.md](server/README.md): architecture, environment, database safety, Supabase setup, ingestion, testing, deployment, troubleshooting
