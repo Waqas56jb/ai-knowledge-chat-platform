@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateAnswer, supportRatio, createAnswerStream } from '../../src/services/chat.service.js';
-import { retrievalQuery } from '../../src/services/chat.service.js';
+import { retrievalQuery, smallTalk } from '../../src/services/chat.service.js';
 import { checkScope, fenceEvidence } from '../../src/services/scope.service.js';
 import { fuseResults } from '../../src/services/reranking.service.js';
 
@@ -44,7 +44,8 @@ describe('answer validation (citations must refer to retrieved chunks)', () => {
   it('handles invalid model output safely', () => {
     expect(validateAnswer('not json at all', ev)).toMatchObject({ outcome: 'insufficient_evidence', invalid: true });
     expect(validateAnswer(JSON.stringify({ outcome: 'hacked', answer: 'x' }), ev).outcome).toBe('insufficient_evidence');
-    expect(validateAnswer(JSON.stringify({ outcome: 'out_of_scope', answer: '' }), ev).outcome).toBe('out_of_scope');
+    // the model cannot refuse on topic: scope refusals come only from the policy check
+    expect(validateAnswer(JSON.stringify({ outcome: 'out_of_scope', answer: '' }), ev).outcome).toBe('insufficient_evidence');
   });
 });
 
@@ -118,5 +119,17 @@ describe('streamed answer preview', () => {
 
   it('emits nothing unless the outcome is "answered"', () => {
     expect(run(JSON.stringify({ outcome: 'insufficient_evidence', answer: 'Something [1].', citations: [1] }), 4).text).toBe('');
+  });
+});
+
+describe('small talk', () => {
+  it('recognises greetings, thanks, goodbyes and help requests', () => {
+    for (const t of ['hi', 'Hello!', 'hey there', 'Assalamualaikum', 'AOA', 'good morning', 'how are you?']) expect(smallTalk(t)).toBe('greeting');
+    for (const t of ['thanks', 'Thank you so much!', 'shukriya']) expect(smallTalk(t)).toBe('thanks');
+    for (const t of ['bye', 'Allah hafiz']) expect(smallTalk(t)).toBe('bye');
+    for (const t of ['what can you do?', 'Who are you']) expect(smallTalk(t)).toBe('help');
+  });
+  it('never treats a real question as small talk', () => {
+    for (const t of ['hi, what are the requirements for startup funding?', 'How do I find pharmacies?', 'thanks for the tips, how do I negotiate?', 'What are the benefits of an LLC?']) expect(smallTalk(t)).toBe(null);
   });
 });
