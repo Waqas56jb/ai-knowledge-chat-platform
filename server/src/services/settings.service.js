@@ -23,7 +23,7 @@ export const SECTIONS = {
       maxFileSizeMb: z.number().int().min(1).max(env.MAX_UPLOAD_SIZE_MB),
       defaultVisibility: z.enum(['workspace', 'restricted', 'private'])
     }).strict(),
-    defaults: { displayName: 'NEXUS AI', description: 'An AI workspace for asking questions about your own videos, documents and business knowledge.', defaultLanguage: 'English', invitationOnly: true, defaultInvitationExpiryDays: 7, maxFileSizeMb: env.MAX_UPLOAD_SIZE_MB, defaultVisibility: 'workspace' }
+    defaults: { displayName: 'DTS AI', description: 'Expert answers for entrepreneurs building medical supply resale businesses, grounded in an industry expert\'s knowledge library.', defaultLanguage: 'English', invitationOnly: true, defaultInvitationExpiryDays: 7, maxFileSizeMb: env.MAX_UPLOAD_SIZE_MB, defaultVisibility: 'workspace' }
   },
   knowledge: {
     scope: 'admin',

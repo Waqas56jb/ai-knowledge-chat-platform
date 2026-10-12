@@ -15,7 +15,7 @@ export function toCsv(rows, columns) {
 }
 
 export function sendCsv(res, name, rows, columns) {
-  const filename = `nexus-${name}-${new Date().toISOString().slice(0, 10)}.csv`.replace(/[^a-z0-9._-]/gi, '_');
+  const filename = `dts-ai-${name}-${new Date().toISOString().slice(0, 10)}.csv`.replace(/[^a-z0-9._-]/gi, '_');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send('﻿' + toCsv(rows, columns));

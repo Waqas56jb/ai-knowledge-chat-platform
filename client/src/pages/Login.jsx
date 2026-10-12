@@ -41,7 +41,7 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout kind="login" title={<>Welcome <em>back.</em></>} sub="Sign in to your knowledge workspace.">
+    <AuthLayout kind="login" title={<>Welcome <em>back.</em></>} sub="Sign in to DTS AI.">
       {notice && <div className="alert info"><Icon name="lock" /><span>{notice}</span></div>}
       <div id="form-alert">{alert && <div className="alert err" role="alert"><Icon name="alert-circle" /><span>{alert}</span></div>}</div>
       <form onSubmit={submit} noValidate>

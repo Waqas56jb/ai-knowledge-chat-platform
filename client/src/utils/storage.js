@@ -1,4 +1,4 @@
-/* localStorage wrapper with in-memory fallback (keys are prefixed "nexus:") */
+/* localStorage wrapper with in-memory fallback. Keys keep their legacy prefix on purpose so existing sessions survive the rebrand. */
 export const mem = {};
 export const store = {
   get(k, d) { try { const v = localStorage.getItem('nexus:' + k); if (v != null) return JSON.parse(v); } catch (e) { /* storage unavailable */ } return k in mem ? mem[k] : d; },

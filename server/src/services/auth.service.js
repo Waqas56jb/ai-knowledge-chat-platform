@@ -105,7 +105,7 @@ export async function resetPassword({ accessToken, tokenHash }, newPassword, req
   }
   const { userId } = await verifyAccessToken(recoveryAccessToken);
   const profile = await loadProfile(userId);
-  if (!profile) throw ApiError.forbidden('This account does not have access to NEXUS AI.');
+  if (!profile) throw ApiError.forbidden('This account does not have access to DTS AI.');
   const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
   if (error) throw ApiError.badRequest('The password could not be updated. Use a stronger password and try again.');
   forgetToken(recoveryAccessToken);
@@ -158,7 +158,7 @@ export async function acceptInvitation({ token, email, fullName, password }, req
       if (existingAuth) throw ApiError.conflict('This email is already registered with the authentication service. Ask an administrator for help.');
 
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
-        email: inv.email, password, email_confirm: true, user_metadata: { full_name: fullName, app: 'nexus-ai' }
+        email: inv.email, password, email_confirm: true, user_metadata: { full_name: fullName, app: 'dts-ai' }
       });
       if (error || !data?.user) {
         if (/password/i.test(error?.message || '')) throw ApiError.validation('The password does not meet the security requirements.');

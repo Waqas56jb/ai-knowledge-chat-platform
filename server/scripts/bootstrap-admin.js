@@ -44,7 +44,7 @@ try {
   const admins = (await pool.query(`select count(*)::int as n from public.ai_knowledge_chat_profiles where role = 'admin' and status = 'active'`)).rows[0].n;
   if (admins > 0 && !flag('allow-additional')) fail(`${admins} active administrator(s) already exist. Use --allow-additional to add another.`);
   const existingProfile = (await pool.query(`select id, role from public.ai_knowledge_chat_profiles where lower(email) = $1`, [email])).rows[0];
-  if (existingProfile) fail(`${email} already has a NEXUS AI profile (role: ${existingProfile.role}). Change roles from the admin panel instead.`);
+  if (existingProfile) fail(`${email} already has a DTS AI profile (role: ${existingProfile.role}). Change roles from the admin panel instead.`);
 
   let userId;
   const existingAuth = (await pool.query('select id from auth.users where lower(email) = $1', [email])).rows[0];
@@ -52,7 +52,7 @@ try {
     if (!flag('use-existing-auth-user')) fail(`${email} already exists in Supabase Auth (possibly used by another project). Re-run with --use-existing-auth-user to link it as administrator WITHOUT changing its password.`);
     userId = existingAuth.id;
   } else {
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: name, app: 'nexus-ai' } });
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: name, app: 'dts-ai' } });
     if (error) fail(`Supabase Auth refused to create the user: ${error.message}`);
     userId = data.user.id;
   }

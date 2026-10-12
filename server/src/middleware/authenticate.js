@@ -40,7 +40,7 @@ export async function authenticate(req, _res, next) {
     if (!m) throw ApiError.unauthorized();
     const { userId } = await verifyAccessToken(m[1]);
     const profile = await loadProfile(userId);
-    if (!profile) throw ApiError.forbidden('This account does not have access to NEXUS AI.');
+    if (!profile) throw ApiError.forbidden('This account does not have access to DTS AI.');
     if (profile.status === 'suspended' || profile.status === 'revoked') throw new ApiError(403, 'ACCOUNT_SUSPENDED', 'This account is suspended. Contact a workspace administrator.');
     if (profile.status !== 'active') throw new ApiError(403, 'ACCOUNT_INACTIVE', 'This account is not active yet.');
     req.user = profile;

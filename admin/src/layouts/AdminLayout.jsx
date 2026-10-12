@@ -30,7 +30,7 @@ export default function AdminLayout() {
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8 lg:py-8">
           <Suspense fallback={<PageSkeleton />}><Outlet /></Suspense>
         </main>
-        <footer className="border-t border-line px-6 py-4 text-center text-[12px] text-faint">NEXUS AI Admin · Connected to the NEXUS AI API.</footer>
+        <footer className="border-t border-line px-6 py-4 text-center text-[12px] text-faint">DTS AI Admin · Connected to the DTS AI API.</footer>
       </div>
     </div>
   );

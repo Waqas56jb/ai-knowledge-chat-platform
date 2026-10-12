@@ -1,5 +1,5 @@
 /**
- * Single HTTP client for the NEXUS AI API.
+ * Single HTTP client for the DTS AI API.
  * - Base URL from VITE_API_BASE_URL; Bearer access token from the stored session.
  * - Unwraps the { success, data, meta } envelope; failures throw ApiError { code, status, details }.
  * - On 401 it refreshes once (deduplicated across concurrent requests) and retries;

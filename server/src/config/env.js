@@ -62,7 +62,7 @@ const schema = z.object({
   SMTP_SECURE: bool('true'),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  MAIL_FROM_NAME: z.string().max(80).default('NEXUS AI'),
+  MAIL_FROM_NAME: z.string().max(80).default('DTS AI'),
   MAIL_FROM_EMAIL: z.string().email().optional(), // defaults to SMTP_USER
   MAIL_REPLY_TO: z.string().email().optional(),
   // never deliver to reserved test domains (RFC 2606) — used by the automated tests

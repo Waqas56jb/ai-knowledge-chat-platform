@@ -34,7 +34,7 @@ export default function LoginPage() {
     const res = await login(values.email, values.password, values.remember);
     if (!res.ok) { setAuthError({ code: res.code, message: res.error }); return; }
     const first = (res.session.user.fullName || res.session.user.email || '').split(/[\s@]/)[0];
-    toast.success(`Welcome back${first ? `, ${first}` : ''}.`, { description: 'Signed in to the NEXUS AI admin console.' });
+    toast.success(`Welcome back${first ? `, ${first}` : ''}.`, { description: 'Signed in to the DTS AI admin console.' });
     navigate(state?.from && state.from.startsWith('/admin') ? state.from : '/admin/dashboard', { replace: true });
   };
   const errorTitle = !authError ? '' : authError.code === 'ADMIN_REQUIRED' ? 'Admin access required.'
@@ -50,7 +50,7 @@ export default function LoginPage() {
   return (
     <AuthLayout>
       <h1 className="text-[30px] font-semibold leading-tight">Welcome <span className="serif-accent text-[1.1em]">back</span></h1>
-      <p className="mt-1.5 text-[14px] text-muted">Sign in to the NEXUS AI admin console.</p>
+      <p className="mt-1.5 text-[14px] text-muted">Sign in to the DTS AI admin console.</p>
 
       {notice && !authError && (
         <div className="mt-6 flex gap-2.5 rounded-xl border border-warning/30 bg-warning-soft px-3.5 py-3 text-[13px] text-ink" role="status"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />{NOTICES[notice] || NOTICES.expired}</div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
         <Button type="submit" variant="primary" size="lg" icon={LogIn} loading={isSubmitting} className="w-full">{isSubmitting ? 'Signing in…' : 'Sign in'}</Button>
       </form>
 
-      <p className="mt-6 text-[12.5px] text-faint">Only administrator accounts can sign in here. Members use the NEXUS AI app.</p>
+      <p className="mt-6 text-[12.5px] text-faint">Only administrator accounts can sign in here. Members use the DTS AI app.</p>
     </AuthLayout>
   );
 }

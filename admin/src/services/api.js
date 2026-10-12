@@ -1,5 +1,5 @@
 /**
- * HTTP client for the NEXUS AI API (see server/docs/API.md).
+ * HTTP client for the DTS AI API (see server/docs/API.md).
  * - Base URL from VITE_API_BASE_URL.
  * - Sends the Bearer access token; on a 401 it refreshes once via POST /auth/refresh (concurrent
  *   requests share one refresh) and retries. If the refresh fails the session is cleared, which makes
@@ -167,7 +167,7 @@ export function saveBlob(blob, filename) {
 export async function downloadCsv(path, query = {}, fallbackName = 'export') {
   const res = await request(path, { query: { ...query, page: undefined, pageSize: undefined, format: 'csv' }, raw: true });
   const blob = await res.blob();
-  const filename = filenameFrom(res, `nexus-admin-${fallbackName}-${new Date().toISOString().slice(0, 10)}.csv`);
+  const filename = filenameFrom(res, `dts-ai-admin-${fallbackName}-${new Date().toISOString().slice(0, 10)}.csv`);
   saveBlob(blob, filename);
   return { filename, size: blob.size };
 }

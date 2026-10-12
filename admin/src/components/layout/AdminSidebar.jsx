@@ -35,7 +35,7 @@ function SidebarBody({ collapsed, onToggle, onNavigate, mobile = false }) {
   return (
     <div className="flex h-full flex-col">
       <div className={cn('flex h-16 shrink-0 items-center border-b border-sidebar-line', collapsed ? 'justify-center px-2' : 'justify-between px-4')}>
-        <NavLink to="/admin/dashboard" onClick={onNavigate} className="rounded-lg" aria-label="NEXUS AI Admin dashboard"><Logo collapsed={collapsed} /></NavLink>
+        <NavLink to="/admin/dashboard" onClick={onNavigate} className="rounded-lg" aria-label="DTS AI Admin dashboard"><Logo collapsed={collapsed} /></NavLink>
         {mobile
           ? <button type="button" className="icon-btn text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text" onClick={onNavigate} aria-label="Close navigation"><X aria-hidden="true" /></button>
           : !collapsed && <button type="button" className="icon-btn icon-btn-sm text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text" onClick={onToggle} aria-label="Collapse sidebar"><ChevronsLeft aria-hidden="true" /></button>}

@@ -1,6 +1,6 @@
-# NEXUS AI — API server
+# DTS AI — API server
 
-Node.js (Express, ES modules) backend for the NEXUS AI knowledge chat platform. It uses:
+Node.js (Express, ES modules) backend for the DTS AI knowledge chat platform. It uses:
 
 - **Supabase**: Postgres with pgvector, Auth, and Storage.
 - **OpenAI**: answers and embeddings.

@@ -9,7 +9,7 @@ export function useDebounce(value, ms = 250) {
 
 /** Set the browser tab title for a page. */
 export function useDocumentTitle(title) {
-  useEffect(() => { document.title = title ? `${title} · NEXUS AI Admin` : 'NEXUS AI Admin'; }, [title]);
+  useEffect(() => { document.title = title ? `${title} · DTS AI Admin` : 'DTS AI Admin'; }, [title]);
 }
 
 /** Call `handler` on a mousedown outside `ref` while `active`. */

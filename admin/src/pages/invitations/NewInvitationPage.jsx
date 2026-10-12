@@ -37,7 +37,7 @@ export default function NewInvitationPage() {
   const [created, setCreated] = useState(null);
   const { data: me } = useQuery(getMe, []);
   const platform = me?.settings?.platform;
-  const workspaceName = platform?.displayName || 'NEXUS AI';
+  const workspaceName = platform?.displayName || 'DTS AI';
   const { register, control, handleSubmit, reset, watch, setError, setFocus, getFieldState, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(invitationSchema), defaultValues: defaults() });
   // apply the server's default expiry once it has loaded, unless the admin already picked one
   useEffect(() => { if (platform && !getFieldState('expiresInDays').isDirty) reset({ ...watch(), expiresInDays: defaults(platform).expiresInDays }); }, [platform?.defaultInvitationExpiryDays]); // eslint-disable-line react-hooks/exhaustive-deps

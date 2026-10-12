@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { LP_HERO } from '../data/config';
+const fmt = n => n.toLocaleString('en-US');
 /* Minimum hero-loader display time (a visual transition, not simulated latency). */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-const LABELS = ['01 — Collect', '02 — Ask', '03 — Verify'];
-const TYPED = ['Your sources point to two things. Write down your objective and walk-away point before the call ', '<span class="l-cn">1</span>', ', and link any discount above 10% to a longer contract or a smaller scope ', '<span class="l-cn">2</span>', '.'];
+const LABELS = ['01 — Ask', '02 — Get a grounded answer', '03 — Jump to the moment'];
+const TYPED = ['Lead with reliability, not price. Introduce yourself to the owner with one specific, easy-to-accept offer ', '<span class="l-cn">1</span>', ', show that every box is sealed and in date, and only work through properly licensed channels ', '<span class="l-cn">2</span>', '.'];
 
 /**
  * All landing motion in one place: preloader, typed answer, nav/progress/parallax on scroll,
@@ -97,8 +98,8 @@ export default function useLandingEffects(rootRef, { seen, markSeen }) {
       /* reveal + counters */
       const countUp = el => {
         const end = +el.dataset.count, t0 = performance.now();
-        if (reduce || end === 0) { el.textContent = end; return; }
-        const step = t => { if (!alive) return; const k = Math.min(1, (t - t0) / 1600); el.textContent = Math.round(end * (1 - Math.pow(1 - k, 4))); if (k < 1) requestAnimationFrame(step); };
+        if (reduce || end === 0) { el.textContent = fmt(end); return; }
+        const step = t => { if (!alive) return; const k = Math.min(1, (t - t0) / 1600); el.textContent = fmt(Math.round(end * (1 - Math.pow(1 - k, 4)))); if (k < 1) requestAnimationFrame(step); };
         requestAnimationFrame(step);
       };
       if ('IntersectionObserver' in window) {

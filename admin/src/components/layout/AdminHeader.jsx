@@ -51,12 +51,12 @@ export default function AdminHeader({ onMenu }) {
           ]} />
       </div>
 
-      <Modal open={help} onClose={() => setHelp(false)} title="Help & documentation" description="Quick reference for the NEXUS AI admin console." size="lg"
+      <Modal open={help} onClose={() => setHelp(false)} title="Help & documentation" description="Quick reference for the DTS AI admin console." size="lg"
         footer={<Button variant="primary" onClick={() => setHelp(false)}>Done</Button>}>
         <div className="space-y-5 text-[13.5px]">
           <section>
             <h3 className="mb-2 flex items-center gap-2 text-[14px] font-semibold"><BookOpen className="h-4 w-4 text-primary-text" aria-hidden="true" />About this console</h3>
-            <p className="text-muted">Every screen reads and writes the NEXUS AI API. Users, invitations, knowledge sources, processing jobs, conversations, analytics, audit logs and settings are live server data, and every administrative action is authorized by the server and written to the audit log. Invitations are not emailed: share the link shown when you create or resend one.</p>
+            <p className="text-muted">Every screen reads and writes the DTS AI API. Users, invitations, knowledge sources, processing jobs, conversations, analytics, audit logs and settings are live server data, and every administrative action is authorized by the server and written to the audit log. Invitations are not emailed: share the link shown when you create or resend one.</p>
           </section>
           <section>
             <h3 className="mb-2 flex items-center gap-2 text-[14px] font-semibold"><Keyboard className="h-4 w-4 text-primary-text" aria-hidden="true" />Keyboard shortcuts</h3>

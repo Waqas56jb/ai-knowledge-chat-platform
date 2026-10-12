@@ -9,7 +9,7 @@ import { ApiError } from '../utils/ApiError.js';
 
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
-const UA = 'Mozilla/5.0 (compatible; NexusAI-KnowledgeIndexer/1.0)';
+const UA = 'Mozilla/5.0 (compatible; DTSAI-KnowledgeIndexer/1.0)';
 
 /** → { kind: 'video', videoId, url } | { kind: 'channel', channelId?, handle?, url } */
 export function parseYouTubeUrl(input) {

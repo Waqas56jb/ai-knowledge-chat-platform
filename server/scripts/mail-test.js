@@ -16,8 +16,8 @@ if (!mailEnabled()) { console.error('Outgoing email is disabled. Set MAIL_ENABLE
 
 const preview = `${env.CLIENT_URL}/?email-preview`;
 const templates = {
-  notice: () => noticeEmail({ title: `${env.MAIL_FROM_NAME} email is working`, paragraphs: ['This is a test message from the NEXUS AI server. Outgoing email (invitations, password resets and notices) is configured correctly.'], cta: { url: env.CLIENT_URL, label: `Open ${env.MAIL_FROM_NAME}` } }),
-  invitation: () => invitationEmail({ inviterName: 'NEXUS Admin', role: 'member', url: preview, expiresAt: new Date(Date.now() + 7 * 864e5), message: 'Preview of the invitation email (this link does not grant access).' }),
+  notice: () => noticeEmail({ title: `${env.MAIL_FROM_NAME} email is working`, paragraphs: ['This is a test message from the DTS AI server. Outgoing email (invitations, password resets and notices) is configured correctly.'], cta: { url: env.CLIENT_URL, label: `Open ${env.MAIL_FROM_NAME}` } }),
+  invitation: () => invitationEmail({ inviterName: 'DTS AI Admin', role: 'member', url: preview, expiresAt: new Date(Date.now() + 7 * 864e5), message: 'Preview of the invitation email (this link does not grant access).' }),
   reset: () => passwordResetEmail({ url: preview, name: 'there' }),
   welcome: () => welcomeEmail({ name: 'there', url: `${env.CLIENT_URL}/app` })
 };

@@ -1,4 +1,4 @@
-# NEXUS AI API (v1)
+# DTS AI API (v1)
 
 Base URL (development): `http://localhost:4001/api/v1` — frontends read it from `VITE_API_BASE_URL`.
 

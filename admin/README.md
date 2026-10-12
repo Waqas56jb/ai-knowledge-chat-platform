@@ -1,8 +1,8 @@
-# NEXUS AI — Admin Panel (frontend)
+# DTS AI — Admin Panel (frontend)
 
-Administration console for NEXUS AI, the AI knowledge chat platform. Manage users and invitation-based access, curate knowledge sources, watch processing jobs, review conversations, and read analytics and audit logs.
+Administration console for DTS AI, the AI knowledge assistant for entrepreneurs in the pharmaceutical and medical supply resale business, with a focus on diabetic testing supplies (DTS). Manage users and invitation-based access, curate knowledge sources, watch processing jobs, review conversations, and read analytics and audit logs.
 
-Every screen is driven by the NEXUS AI API (`server/`, contract in [`server/docs/API.md`](../server/docs/API.md)). There is no mock data in this app.
+Every screen is driven by the DTS AI API (`server/`, contract in [`server/docs/API.md`](../server/docs/API.md)). There is no mock data in this app.
 
 ## Quick start
 

@@ -78,7 +78,7 @@ export default function Chat() {
     const icons = it => TYPES[it.group].icon;
     body = (
       <div className="msgs-in chat-empty"><Logo size={48} /><h2>What would you like to <em>explore?</em></h2>
-        <p>Ask a question about your indexed knowledge. Relevant sources will appear alongside supported answers.</p>
+        <p>Ask about sourcing, pricing, pharmacies, ads, hiring or scaling. Answers come from the expert library, with sources alongside.</p>
         {suggest.status === 'loading' && <div className="pgrid">{[0, 1, 2, 3].map(i => <div key={i} className="skel" style={{ height: 64 }} />)}</div>}
         {suggest.status === 'ready' && suggest.items.length > 0 && <div className="pgrid">{suggest.items.map(s => <button key={s.id} onClick={() => send(s.prompt, null)} disabled={!canChat}><Icon name={icons(s)} /><span>{s.prompt}</span></button>)}</div>}
         {suggest.status === 'ready' && !suggest.items.length && <p className="muted" style={{ fontSize: 14 }}>No knowledge sources are indexed yet. Once an administrator adds sources, suggested questions appear here.</p>}
@@ -100,7 +100,7 @@ export default function Chat() {
           </MenuWrap>}
         </div>
         <div className="msgs" id="msgs" role="log" aria-live="polite" aria-busy={streaming} ref={msgsRef} onScroll={onScroll}>{body}</div>
-        <div className="comp-wrap"><div className="comp-in"><Composer placeholder={id ? 'Ask a follow-up' : 'Ask about your knowledge'} currentId={id || null} autoFocus /></div></div>
+        <div className="comp-wrap"><div className="comp-in"><Composer placeholder={id ? 'Ask a follow-up' : 'Ask a business question'} currentId={id || null} autoFocus /></div></div>
       </section>
       <aside className="spanel" id="spanel" aria-label="Source details"><SourcePanel panel={ui.panel} onClose={() => setUi({ panel: null })} /></aside>
     </div>

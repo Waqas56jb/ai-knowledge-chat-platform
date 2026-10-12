@@ -16,8 +16,8 @@ export function toCsv(rows, columns) {
   return [head, ...body].join('\r\n');
 }
 
-/** Descriptive filename: nexus-admin-users-2026-10-12.csv */
-export const csvFilename = name => `nexus-admin-${name}-${new Date().toISOString().slice(0, 10)}.csv`;
+/** Descriptive filename: dts-ai-admin-users-2026-10-12.csv */
+export const csvFilename = name => `dts-ai-admin-${name}-${new Date().toISOString().slice(0, 10)}.csv`;
 
 export function downloadFile(filename, content, type = 'text/csv;charset=utf-8') {
   const blob = new Blob([type.startsWith('text/csv') ? '﻿' + content : content], { type }); // BOM so Excel reads UTF-8

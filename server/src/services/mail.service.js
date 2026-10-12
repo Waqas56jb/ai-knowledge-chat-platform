@@ -35,7 +35,7 @@ export async function sendMail({ to, subject, html, text, category = 'general', 
   try {
     const info = await getTransport().sendMail({
       from: fromAddress(), to, subject, html, text, replyTo: replyTo || env.MAIL_REPLY_TO || undefined,
-      headers: { 'X-NexusAI-Category': category }
+      headers: { 'X-DTSAI-Category': category }
     });
     logger.info({ category, domain: domainOf(to), accepted: info.accepted?.length || 0 }, 'email sent');
     return { sent: (info.accepted?.length || 0) > 0, messageId: info.messageId };
@@ -79,7 +79,7 @@ export function layout({ preheader = '', heading, blocks = [], brand = env.MAIL_
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0e0d0b;padding:32px 12px"><tr><td align="center">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
     <tr><td style="padding:0 4px 18px"><table role="presentation" cellpadding="0" cellspacing="0"><tr>
-      <td style="width:34px;height:34px;border-radius:9px;background:#d4a64a;text-align:center;font-weight:800;font-size:18px;color:#14130f">N</td>
+      <td style="width:34px;height:34px;border-radius:9px;background:#d4a64a;text-align:center;font-weight:800;font-size:18px;color:#14130f">${esc(brand.trim().charAt(0).toUpperCase() || 'D')}</td>
       <td style="padding-left:10px;font-size:16px;font-weight:700;letter-spacing:.06em;color:#f2eee4">${esc(brand.toUpperCase())}</td></tr></table></td></tr>
     <tr><td style="background:#161512;border:1px solid #2a2823;border-radius:16px;padding:32px 30px">
       <h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;color:#f6f2e8;font-weight:700">${esc(heading)}</h1>
@@ -96,7 +96,7 @@ export function invitationEmail({ inviterName, role, url, expiresAt, message, wo
   const who = inviterName ? `${inviterName} has invited you` : 'You have been invited';
   const roleLabel = { admin: 'an administrator', member: 'a member', readonly: 'a read-only member' }[role] || 'a member';
   const subject = `You're invited to ${workspace}`;
-  const intro = `${who} to join ${workspace} as ${roleLabel}. ${workspace} lets you ask questions and get answers grounded in your team's videos and documents, with sources for every answer.`;
+  const intro = `${who} to join ${workspace} as ${roleLabel}. ${workspace} gives you answers to your medical supply business questions from an industry expert's knowledge library, with the source of every answer.`;
   const expiry = `This invitation is personal to you and expires on ${fmtDate(expiresAt)}.`;
   return {
     subject,

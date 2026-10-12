@@ -3,7 +3,7 @@ import {
   ArrowUp, MessageSquare, HelpCircle, Activity, PlayCircle, FileText, AlignLeft, MessagesSquare, AlertCircle, Quote, Copy, BookOpen,
   ThumbsUp, ThumbsDown, RefreshCw, MoreHorizontal, ExternalLink, AlertTriangle, Pencil, Scale, MoreVertical, Clock, List, LayoutGrid,
   Tv, File, Users, Play, Calendar, Check, CheckCircle, Info, Eye, EyeOff, ArrowLeft, ArrowRight, Map, Sliders, Shield, Monitor, Sun,
-  Moon, Trash2, Mail, Lock, Key, Sparkles, ShieldCheck, SearchCheck, CheckCircle2
+  Moon, Trash2, Mail, Lock, Key, Sparkles, ShieldCheck, SearchCheck, CheckCircle2, Package
 } from 'lucide-react';
 
 /* Kebab-case names keep the same vocabulary as the data files (e.g. TYPES[t].icon). */
@@ -18,7 +18,7 @@ const ICONS = {
   'play': Play, 'calendar': Calendar, 'check': Check, 'check-circle': CheckCircle, 'info': Info, 'eye': Eye, 'eye-off': EyeOff,
   'arrow-left': ArrowLeft, 'arrow-right': ArrowRight, 'map': Map, 'sliders': Sliders, 'shield': Shield, 'monitor': Monitor, 'sun': Sun,
   'moon': Moon, 'trash-2': Trash2, 'mail': Mail, 'lock': Lock, 'key': Key, 'sparkles': Sparkles, 'shield-check': ShieldCheck,
-  'search-check': SearchCheck, 'check-circle-2': CheckCircle2
+  'search-check': SearchCheck, 'check-circle-2': CheckCircle2, 'package': Package
 };
 
 /** App icon: renders with class "ic" (sized by CSS). */

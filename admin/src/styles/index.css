@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   DESIGN TOKENS — NEXUS AI admin. Warm ivory light theme (default) and noir dark
-   theme, both with the NEXUS gold accent. Values are "R G B" for Tailwind alpha.
+   DESIGN TOKENS — DTS AI admin. Warm ivory light theme (default) and noir dark
+   theme, both with the DTS gold accent. Values are "R G B" for Tailwind alpha.
    ========================================================================== */
 @layer base {
   :root {

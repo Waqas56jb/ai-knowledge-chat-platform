@@ -25,7 +25,7 @@ async function main() {
   }
 
   const app = createApp();
-  const server = app.listen(env.PORT, () => logger.info({ port: env.PORT, prefix: env.API_PREFIX, origins: env.corsOrigins }, `NEXUS AI API listening on http://localhost:${env.PORT}${env.API_PREFIX}`));
+  const server = app.listen(env.PORT, () => logger.info({ port: env.PORT, prefix: env.API_PREFIX, origins: env.corsOrigins }, `DTS AI API listening on http://localhost:${env.PORT}${env.API_PREFIX}`));
   server.requestTimeout = 120000;
   // keep idle connections open longer than the platform proxy (Railway/Nginx), otherwise the proxy can reuse a
   // socket Node just closed and answer 502; headersTimeout must exceed keepAliveTimeout
