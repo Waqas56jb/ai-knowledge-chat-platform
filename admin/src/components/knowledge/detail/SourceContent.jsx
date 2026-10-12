@@ -5,7 +5,8 @@ import { EmptyState, ErrorState, Skeleton } from '../../common/States';
 import { CopyButton } from '../../common/Misc';
 import Button from '../../common/Button';
 import { getSourceChunks } from '../../../services/knowledgeService';
-import { formatNumber } from '../../../utils/format';
+import { formatDateTime, formatNumber } from '../../../utils/format';
+import { restructuredLabel } from '../sourceUtils';
 
 const PAGE = 20;
 const ts = s => (s == null ? null : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`);
@@ -14,10 +15,18 @@ const ts = s => (s == null ? null : `${Math.floor(s / 60)}:${String(Math.floor(s
 export default function SourceContent({ source: s, action }) {
   const isYt = s.type === 'youtube';
   const preview = s.content && s.content.preview;
+  const conv = s.type === 'client_conversation';
+  const r = conv ? s.restructured : null;
   return (
     <div className="space-y-6">
+      {conv && (
+        <p role="note" className="rounded-xl border border-primary/30 bg-primary-soft/60 px-4 py-3 text-[13px] text-muted">
+          <b className="font-semibold text-ink">{r ? `${restructuredLabel(r)}${r.at ? ` on ${formatDateTime(r.at)}` : ''}.` : 'Not restructured yet.'}</b>{' '}
+          This is the anonymised playbook that was indexed. The original conversation text and file are not kept.
+        </p>
+      )}
       <Card>
-        <CardHeader title={isYt ? 'Transcript preview' : 'Content preview'} icon={FileText}
+        <CardHeader title={isYt ? 'Transcript preview' : conv ? 'Anonymised playbook' : 'Content preview'} icon={FileText}
           description={s.content ? `${formatNumber(s.content.length)} characters${s.content.language ? ` · ${s.content.language}` : ''}${s.content.provider ? ` · ${s.content.provider}` : ''}${s.content.length > (preview || '').length ? ` · first ${formatNumber((preview || '').length)} shown` : ''}` : undefined}
           actions={preview ? <CopyButton text={preview} label="Copy text" /> : null} />
         <div className="card-pad">

@@ -25,7 +25,7 @@ export default function Composer({ placeholder, currentId = null, autoFocus = fa
 
   return (
     <>
-      {locked && <div className="alert warn" role="status"><Icon name="lock" /><span>Your account is read-only. You can browse sources and past conversations, but you cannot ask new questions. Ask an administrator if you need access.</span></div>}
+      {locked && <div className="alert warn" role="status"><Icon name="lock" /><span>Your account is read-only. You can read past conversations, but you cannot ask new questions. Ask an administrator if you need access.</span></div>}
       <form className="comp" onSubmit={submit} aria-disabled={locked}>
         <label className="sr" htmlFor="comp-t">Your question</label>
         <textarea id="comp-t" ref={ta} rows={1} maxLength={max} placeholder={locked ? 'Read-only access: asking questions is disabled' : placeholder} value={value} disabled={locked}

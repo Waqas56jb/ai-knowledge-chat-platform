@@ -431,3 +431,19 @@ html:not(.l-js-ok) .l-fade,html:not(.l-js-ok) .l-line>span,html:not(.l-js-ok) .l
   .scope>.ic{display:none}.comp-row{flex-wrap:nowrap}.scope .select{max-width:150px}.sgrid{grid-template-columns:1fr}.notif{width:min(310px,calc(100vw - 28px))}
   #toasts{left:16px}
 }
+
+/* ---------- Overview: greeting, composer and suggested prompts ---------- */
+.home{max-width:760px;min-height:calc(100dvh - 180px);display:flex;flex-direction:column;justify-content:center;padding:24px 0 40px}
+.home-hero{display:grid;justify-items:center;text-align:center;gap:12px;margin-bottom:26px}
+.home-hero h1{font-size:clamp(30px,4vw,46px);font-weight:600;letter-spacing:-.045em;line-height:1.08}
+.home-hero h1 em{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.01em;color:var(--pri-t)}
+.home-hero p{color:var(--muted);max-width:52ch;font-size:15.5px}
+.home .home-comp{margin-bottom:0}
+.home-prompts{margin-top:30px;display:grid;justify-items:center}
+.home-prompts h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center}
+.home-prompts .pgrid{width:100%;margin-top:14px}
+.home-prompts .pgrid button:disabled,.pgrid button:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+@media (max-width:640px){
+  .home{min-height:0;padding:8px 0 24px}.home-hero{margin-bottom:20px}.home-hero p{font-size:14.5px}
+  .home .home-comp{padding:14px;border-radius:20px}.home-prompts{margin-top:24px}.home-prompts h2{font-size:12px;letter-spacing:.06em}
+}

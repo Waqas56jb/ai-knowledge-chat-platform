@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useApp } from '../../context/AppContext';
 import { sourceService } from '../../services/sourceService';
 import { TYPE_LABEL } from '../../data/config';
 import { fmtDate } from '../../utils/format';
 import Icon from '../common/Icon';
 import { StatusBadge, TypeBadge } from '../common/ui';
 
+const DOC_TYPES = ['pdf', 'docx', 'txt', 'markdown'];
+
 /** Right-hand drawer with the cited excerpt. `panel` = a Citation ({ n, sourceId, sourceTitle, sourceType, excerpt, timestamp, pageNumber, url }). */
 export default function SourcePanel({ panel, onClose }) {
+  const { toast } = useApp();
   const ref = useRef(null);
+  const [dl, setDl] = useState(false);
   const [src, setSrc] = useState({ id: null, data: null, error: null });
   useEffect(() => { const b = ref.current && ref.current.querySelector('button'); b && b.focus(); }, [panel]);
 
@@ -23,6 +27,14 @@ export default function SourcePanel({ panel, onClose }) {
 
   if (!panel) return null;
   const s = src.id === sid ? src.data : null;
+  const canDownload = !!s && DOC_TYPES.includes(s.type) && !!s.file;
+  /* GET /sources/:id/download returns a short-lived file URL. */
+  const download = async () => {
+    setDl(true);
+    try { const r = await sourceService.download(s.id); window.open(r.url, '_blank', 'noopener,noreferrer'); }
+    catch (e) { toast(e.message, 'err'); }
+    setDl(false);
+  };
   const loc = panel.timestamp || (panel.pageNumber ? 'Page ' + panel.pageNumber : '');
   return (
     <div ref={ref}>
@@ -42,8 +54,8 @@ export default function SourcePanel({ panel, onClose }) {
         {s && <><dt>Added</dt><dd>{fmtDate(s.createdAt)}</dd></>}
       </dl>
       <div style={{ display: 'grid', gap: 8 }}>
-        <Link className="btn btn-pri btn-sm" to={`/app/sources/${panel.sourceId}`}>Open full source</Link>
-        {panel.url && <a className="btn btn-out btn-sm" href={panel.url} target="_blank" rel="noopener noreferrer"><Icon name="external-link" />{panel.timestamp ? `Open on YouTube at ${panel.timestamp}` : 'Open original'}</a>}
+        {panel.url && <a className="btn btn-pri btn-sm" href={panel.url} target="_blank" rel="noopener noreferrer"><Icon name="external-link" />{panel.timestamp ? `Open on YouTube at ${panel.timestamp}` : 'Open original'}</a>}
+        {canDownload && <button className={`btn btn-out btn-sm ${dl ? 'loading' : ''}`} onClick={download} disabled={dl}><Icon name="file" />Download</button>}
       </div>
     </div>
   );

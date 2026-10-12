@@ -24,7 +24,7 @@ export default function TopSourcesCard({ sources, loading }) {
                 <span className="w-5 shrink-0 text-right text-[12.5px] font-semibold text-faint">{i + 1}</span>
                 <SourceTypeIcon type={s.type} size="sm" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13.5px] font-medium text-ink">{s.title}</span>
+                  <span className="block text-[13.5px] font-medium leading-snug text-ink line-clamp-2 [overflow-wrap:anywhere]" title={s.title}>{s.title}</span>
                   <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-subtle" aria-hidden="true">
                     <span className="block h-full rounded-full bg-primary" style={{ width: `${(s.citations / max) * 100}%` }} />
                   </span>

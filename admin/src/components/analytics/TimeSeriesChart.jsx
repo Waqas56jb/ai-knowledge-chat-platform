@@ -1,5 +1,6 @@
 import { ResponsiveContainer, LineChart, AreaChart, BarChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { ChartTooltip } from '../common/ChartCard';
+import { formatCompact } from '../../utils/format';
 import { AXIS_PROPS, GRID_PROPS, CURSOR_LINE, CURSOR_BAR, SURFACE, xTickProps } from './chartTheme';
 
 const CHARTS = { line: LineChart, area: AreaChart, bar: BarChart };
@@ -11,15 +12,18 @@ const CHARTS = { line: LineChart, area: AreaChart, bar: BarChart };
 export default function TimeSeriesChart({ rows, series, type = 'line', stacked = false, ariaLabel }) {
   const Chart = CHARTS[type];
   const last = series.length - 1;
+  // Wide enough for the largest tick (compact format: 1.2K), so values are never clipped.
+  const max = Math.max(0, ...rows.map(r => (stacked ? series.reduce((n, s) => n + (Number(r[s.key]) || 0), 0) : Math.max(0, ...series.map(s => Number(r[s.key]) || 0)))));
+  const yWidth = Math.max(36, formatCompact(max).length * 7.5 + 16);
   return (
     <div className="flex h-full flex-col" role="img" aria-label={ariaLabel}>
       {series.length > 1 && <SeriesLegend series={series} />}
       <div className="min-h-0 flex-1">
         <ResponsiveContainer width="100%" height="100%">
-          <Chart data={rows} margin={{ top: 8, right: 8, left: -12, bottom: 0 }} barCategoryGap="22%">
+          <Chart data={rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }} barCategoryGap="22%">
             <CartesianGrid {...GRID_PROPS} />
             <XAxis {...xTickProps(rows.length)} />
-            <YAxis {...AXIS_PROPS} allowDecimals={false} width={44} />
+            <YAxis {...AXIS_PROPS} allowDecimals={false} width={yWidth} tickFormatter={formatCompact} />
             <Tooltip content={<ChartTooltip />} cursor={type === 'bar' ? CURSOR_BAR : CURSOR_LINE} />
             {series.map((s, i) => {
               if (type === 'bar') {

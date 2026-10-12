@@ -12,7 +12,7 @@ export function CardHeader({ title, description, actions, icon: Icon, className 
       <div className="flex min-w-0 items-center gap-3">
         {Icon && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary-text"><Icon className="h-4 w-4" aria-hidden="true" /></span>}
         <div className="min-w-0">
-          <h2 className="card-title truncate">{title}</h2>
+          <h2 className="card-title break-words">{title}</h2>
           {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
         </div>
       </div>

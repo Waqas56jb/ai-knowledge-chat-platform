@@ -86,7 +86,8 @@ export async function createYoutubeSource(payload, actor, req) {
 export async function createDocumentSource(file, fields, actor, req) {
   if (!file) throw ApiError.validation('Attach a file in the "file" field.');
   const type = detectDocumentType(file.buffer, file.originalname);
-  await assertTypeEnabled(type);
+  const conversation = fields.asConversation === 'true';
+  await assertTypeEnabled(conversation ? 'client_conversation' : type);
   const { platform } = await getSettings();
   if (file.size > platform.maxFileSizeMb * 1024 * 1024) throw new ApiError(413, 'FILE_TOO_LARGE', `The file is larger than ${platform.maxFileSizeMb} MB.`);
   const hash = sha256(file.buffer);
@@ -95,8 +96,10 @@ export async function createDocumentSource(file, fields, actor, req) {
 
   // 1) create the record, 2) store the private file, 3) queue the job — rolling back on failure
   const s = await tx(db => insertSource(db, {
-    title, description: fields.description, sourceType: type, visibility: fields.visibility, allowedUserIds: fields.allowedUserIds, tags: fields.tags,
-    contentHash: hash, metadata: { kind: 'document', file: { name: file.originalname.slice(0, 200), size: file.size, type } }
+    title, description: fields.description, sourceType: conversation ? 'client_conversation' : type,
+    // conversations are anonymised and restructured before indexing
+    visibility: fields.visibility, allowedUserIds: fields.allowedUserIds, tags: fields.tags,
+    contentHash: hash, metadata: { kind: 'document', category: conversation ? fields.category || null : undefined, file: { name: file.originalname.slice(0, 200), size: file.size, type } }
   }, actor));
   let path = null;
   try {
@@ -104,7 +107,7 @@ export async function createDocumentSource(file, fields, actor, req) {
     return await tx(async db => {
       await db.query(`update ${T.sources} set storage_path = $2 where id = $1`, [s.id, path]);
       const job = await enqueueJob(db, { sourceId: s.id, jobType: 'document_extraction', requestedBy: actor.id });
-      await recordAudit({ actor, action: 'source.added', entityType: 'source', entityId: s.id, entityLabel: title, details: { type, size: file.size }, req }, db);
+      await recordAudit({ actor, action: 'source.added', entityType: 'source', entityId: s.id, entityLabel: title, details: { type, size: file.size, conversation }, req }, db);
       return { source: { ...s, storage_path: path }, job };
     });
   } catch (e) {
@@ -121,7 +124,8 @@ export async function createTextSource(payload, actor, req) {
   if (text.length < 20) throw ApiError.validation('The text is too short to index (at least 20 characters).');
   const hash = sha256(text);
   await assertNoDuplicateContent(hash);
-  const visibility = payload.sourceType === 'client_conversation' && !payload.visibility ? 'restricted' : payload.visibility;
+  // client conversations are anonymised and restructured before indexing, so they use the normal default visibility
+  const visibility = payload.visibility;
   return tx(async db => {
     const s = await insertSource(db, {
       title: payload.title, description: payload.description, sourceType: payload.sourceType, visibility, allowedUserIds: payload.allowedUserIds,

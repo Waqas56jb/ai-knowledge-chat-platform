@@ -6,8 +6,11 @@ import { apiGet, apiList, apiPatch, apiPost, apiDelete, downloadCsv, listAll } f
 import { mapAudit } from './auditService';
 
 /** AdminUser → UI shape (`name` is what the components display). */
+const EMPTY_BUSINESS = { name: null, type: null, role: null, city: null, state: null, country: null, stage: null, products: [], clientTypes: [], updatedAt: null };
+
 export const mapUser = u => u && ({
   ...u,
+  business: { ...EMPTY_BUSINESS, ...(u.business || {}), products: u.business?.products || [], clientTypes: u.business?.clientTypes || [] },
   name: u.fullName || u.name || u.email,
   department: u.department || '',
   notes: u.notes || '',
@@ -16,9 +19,19 @@ export const mapUser = u => u && ({
   questionsAsked: u.questionsAsked ?? 0
 });
 
-const listQuery = ({ q, status, role, sort, dir, page, pageSize } = {}) => ({ q: q && q.trim(), status, role, sort, dir, page, pageSize });
+/** Hidden business-profile filters (case-insensitive exact matches on the server; `product`/`clientType` match any list value). */
+export const PROFILE_FILTERS = ['country', 'state', 'city', 'businessType', 'stage', 'product', 'clientType', 'hasProfile'];
 
-/** Filters: { q, status, role, sort, dir, page, pageSize } → { rows, meta } (meta.stats has the counts). */
+const listQuery = ({ q, status, role, sort, dir, page, pageSize, ...rest } = {}) => {
+  const out = { q: q && q.trim(), status, role, sort, dir, page, pageSize };
+  PROFILE_FILTERS.forEach(k => { if (rest[k] != null && rest[k] !== '' && rest[k] !== 'all') out[k] = String(rest[k]); });
+  return out;
+};
+
+/**
+ * Filters: { q, status, role, country, state, city, businessType, stage, product, clientType, hasProfile ('true'|'false'),
+ * sort, dir, page, pageSize } → { rows, meta } (meta.stats has the counts). `q` also matches the business name.
+ */
 export async function getUsers(filters = {}) {
   const { rows, meta } = await apiList('/admin/users', listQuery(filters));
   return { rows: rows.map(mapUser), meta };
@@ -38,10 +51,36 @@ export async function getUserStats() {
   return { total: s.total ?? 0, active: s.active ?? 0, suspended: s.suspended ?? 0, revoked: s.revoked ?? 0, pendingInvitations: s.pending_invitations ?? 0 };
 }
 
+/**
+ * Values for the business-profile filter dropdowns:
+ * { countries, states, businessTypes, products, clientTypes: [{ value, count }], stages: ['starting','growing','established'] }
+ */
+export async function getInsightOptions() {
+  const o = await apiGet('/admin/users/insight-options');
+  const list = v => (Array.isArray(v) ? v.filter(x => x && x.value) : []);
+  return { countries: list(o?.countries), states: list(o?.states), businessTypes: list(o?.businessTypes), products: list(o?.products), clientTypes: list(o?.clientTypes), stages: o?.stages || ['starting', 'growing', 'established'] };
+}
+
+/* ------------------------- hidden business profile ------------------------- */
+
+/** BusinessProfile → UI shape (lists and manualFields always arrays). */
+export const mapBusinessProfile = p => p && ({ ...p, products: p.products || [], clientTypes: p.clientTypes || [], manualFields: p.manualFields || [] });
+
+const profilePath = id => `/admin/users/${encodeURIComponent(id)}/business-profile`;
+export const getBusinessProfile = async id => mapBusinessProfile(await apiGet(profilePath(id)));
+/** changes: any of { businessName, businessType, userRole, city, state, country, businessStage, products, clientTypes, monthlyVolume, teamSize, summary }. Edited fields become manual (the AI never overwrites them). */
+export const updateBusinessProfile = async (id, changes) => mapBusinessProfile(await apiPatch(profilePath(id), changes));
+/** Rebuild from the user's conversations now (uses the AI). */
+export const refreshBusinessProfile = async id => mapBusinessProfile(await apiPost(`${profilePath(id)}/refresh`));
+/** Hand fields back to the AI (removes them from manualFields). */
+export const releaseBusinessProfileFields = async (id, fields) => mapBusinessProfile(await apiPost(`${profilePath(id)}/release`, { fields }));
+export const clearBusinessProfile = id => apiDelete(profilePath(id));
+
 export async function getUserById(id) {
   const u = await apiGet(`/admin/users/${encodeURIComponent(id)}`);
   return {
     ...mapUser(u),
+    businessProfile: mapBusinessProfile(u.businessProfile || null),
     allowedSourceIds: u.allowedSourceIds || [],
     conversations: (u.conversations || []).map(c => ({ ...c, outcome: c.outcome || null })),
     invitations: u.invitations || [],

@@ -39,7 +39,7 @@ export default function SystemStatusCard({ health, healthLoading, jobStats, load
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-subtle text-muted"><Icon className="h-4 w-4" aria-hidden="true" /></span>
               <div className="min-w-0 flex-1 basis-48">
                 <p className="text-[13.5px] font-medium text-ink">{r.name}</p>
-                {busy ? <Skeleton className="mt-1 h-3 w-48 max-w-full" /> : <p className="text-[12.5px] text-muted">{r.detail}</p>}
+                {busy ? <Skeleton className="mt-1 h-3 w-48 max-w-full" /> : <p className="text-[12.5px] text-muted [overflow-wrap:anywhere]">{r.detail}</p>}
               </div>
               {busy ? <Skeleton className="h-5 w-20 rounded-full" /> : <StatusBadge status={r.status} label={r.label} />}
             </li>

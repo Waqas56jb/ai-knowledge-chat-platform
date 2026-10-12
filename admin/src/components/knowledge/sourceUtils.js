@@ -49,7 +49,8 @@ export function sourceCapabilities(source, activeJob) {
     retry: source.status === 'failed' && !busy,
     disable: source.status !== 'disabled' && !busy,
     enable: source.status === 'disabled',
-    download: !!source.file && DOCUMENT_TYPES.includes(source.type),
+    // client conversations keep no original file (only the anonymised playbook), so there is nothing to download
+    download: !!source.file && DOCUMENT_TYPES.includes(source.type) && source.type !== 'client_conversation',
     busy
   };
 }
@@ -106,4 +107,11 @@ export function useSourceActions({ onDeleted } = {}) {
   }, []);
 
   return { start, retry, enable, disable, remove, download, pending };
+}
+
+/** "Restructured into 4 lessons" for a client-conversation source (null until processed). */
+export function restructuredLabel(r) {
+  if (!r) return null;
+  const n = Number(r.entries) || 0;
+  return `Restructured into ${n} ${n === 1 ? 'lesson' : 'lessons'}`;
 }

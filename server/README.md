@@ -127,6 +127,26 @@ The server sends invitations, password resets and a welcome email through SMTP (
 
 Uploaded documents go to the **private** bucket `ai_knowledge_chat_documents`, which is created automatically if it is missing. Downloads use short-lived signed URLs, issued only to users who can access the source.
 
+## Client conversations
+
+Admins can paste a conversation or upload one or more files, such as a WhatsApp chat export, call notes or an email thread, as a **Client conversation**. Before indexing, each one goes through `services/restructure.service.js`:
+
+1. Code removes emails, phone numbers and links.
+2. The AI rewrites the log into anonymised "playbook" entries: situation, what the client wanted or objected to, how it was handled, outcome and the lesson. People are referred to only by their role.
+3. Only that result is stored and indexed. The raw text and the uploaded file are discarded, and re-indexing re-uses the stored result.
+
+The chat can then answer questions such as "how do I handle a seller who wants more per box?" from these lessons.
+
+## Business profiles (hidden)
+
+`services/insight.service.js` keeps a hidden profile for each member, stored in `ai_knowledge_chat_user_insights`. It holds business name, type, role, city, state, country, stage, products, client types, volume, team size and a short summary.
+
+- **How it's built:** the AI builds the profile from the member's **own** messages only. Assistant answers are not used, and neither are messages the scope policy refused. The worker refreshes it about 2 minutes after a conversation goes quiet, and existing users are picked up automatically.
+- **How it's used:** in later answers the profile is passed to the model as fenced background, so answers fit the member's situation and their conversations build on each other. It is never cited as a source and never returned by user endpoints.
+- **Admin controls:** admins can filter users by these fields, and can view, edit, refresh or clear a profile. A field an admin edits is never overwritten by the AI.
+- **Deletion:** if the member deletes all their conversations, the profile is deleted too.
+- **Limitation:** the profile reflects what the member says about themselves. If they misstate their business, it shows that, and an admin can correct it.
+
 ## YouTube transcripts
 
 - **Video metadata:** read through YouTube oEmbed.

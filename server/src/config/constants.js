@@ -16,10 +16,11 @@ export const T = Object.freeze({
   notifications: 'public.ai_knowledge_chat_notifications',
   settings: 'public.ai_knowledge_chat_settings',
   usage: 'public.ai_knowledge_chat_usage_events',
-  contentGaps: 'public.ai_knowledge_chat_content_gaps'
+  contentGaps: 'public.ai_knowledge_chat_content_gaps',
+  insights: 'public.ai_knowledge_chat_user_insights'
 });
 /** Number of SQL files in supabase/migrations the code depends on. */
-export const REQUIRED_MIGRATIONS = 5;
+export const REQUIRED_MIGRATIONS = 6;
 export const GAP_STATUSES = ['open', 'planned', 'covered', 'dismissed'];
 export const FN = Object.freeze({
   accessibleSources: 'public.ai_knowledge_chat_accessible_source_ids',

@@ -11,6 +11,17 @@ export const roleLabel = r => ROLE_LABELS[r] || r || '—';
 export const USER_STATUSES = ['active', 'pending', 'suspended', 'revoked'];
 export const SOURCE_ACCESS = { workspace: 'All workspace sources', restricted: 'Only selected sources' };
 
+/* hidden business profile (built by AI from a member's own messages; never shown to the member) */
+export const BUSINESS_STAGES = ['starting', 'growing', 'established'];
+export const BUSINESS_STAGE_LABELS = { starting: 'Starting', growing: 'Growing', established: 'Established' };
+/** Profile fields in display order: [key, label]. Keys match the PATCH / release body. */
+export const BUSINESS_PROFILE_FIELDS = [
+  ['businessName', 'Business name'], ['businessType', 'Business type'], ['userRole', 'Their role'],
+  ['city', 'City'], ['state', 'State / region'], ['country', 'Country'], ['businessStage', 'Stage'],
+  ['products', 'Products'], ['clientTypes', 'Client types'], ['monthlyVolume', 'Monthly volume'], ['teamSize', 'Team size'], ['summary', 'Summary']
+];
+export const businessFieldLabel = k => (BUSINESS_PROFILE_FIELDS.find(([f]) => f === k) || [k, k])[1];
+
 /* invitations */
 export const INVITATION_STATUSES = ['pending', 'accepted', 'expired', 'revoked'];
 export const EXPIRY_OPTIONS = [[1, '24 hours'], [3, '3 days'], [7, '7 days'], [14, '14 days'], [30, '30 days'], [60, '60 days']];
@@ -70,6 +81,10 @@ export const AUDIT_ACTIONS = {
   'user.reactivated': 'User reactivated',
   'user.revoked': 'User access revoked',
   'user.deleted': 'User deleted',
+  'user.business_profile_updated': 'Business profile edited',
+  'user.business_profile_refreshed': 'Business profile refreshed',
+  'user.business_profile_released': 'Business profile fields released to AI',
+  'user.business_profile_cleared': 'Business profile cleared',
   'source.added': 'Source added',
   'source.updated': 'Source updated',
   'source.disabled': 'Source disabled',

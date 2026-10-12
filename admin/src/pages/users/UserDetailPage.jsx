@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Activity, ArrowLeft, Ban, KeyRound, LayoutGrid, MessagesSquare, MoreHorizontal, PencilLine, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Activity, ArrowLeft, Ban, Briefcase, KeyRound, LayoutGrid, MessagesSquare, MoreHorizontal, PencilLine, RotateCcw, ShieldCheck } from 'lucide-react';
 import Button, { IconButton } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import Avatar from '../../components/common/Avatar';
@@ -18,6 +18,7 @@ import { RoleBadge } from '../../components/users/roles';
 import { useUserActions } from '../../components/users/useUserActions';
 import UserOverview from '../../components/users/UserOverview';
 import { UserAccess, UserActivity, UserConversations } from '../../components/users/UserTabs';
+import BusinessProfileTab from '../../components/users/BusinessProfileTab';
 
 export default function UserDetailPage() {
   const { userId } = useParams();
@@ -40,6 +41,7 @@ export default function UserDetailPage() {
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'activity', label: 'Activity', icon: Activity, count: user.activity.length },
     { id: 'conversations', label: 'Conversations', icon: MessagesSquare, count: user.conversations.length },
+    { id: 'business', label: 'Business profile', icon: Briefcase },
     { id: 'access', label: 'Access and invitations', icon: KeyRound }
   ];
 
@@ -76,6 +78,7 @@ export default function UserDetailPage() {
       <TabPanel id="overview" value={tab} idPrefix="user"><UserOverview user={user} onShowAccess={() => setTab('access')} /></TabPanel>
       <TabPanel id="activity" value={tab} idPrefix="user"><UserActivity activity={user.activity} user={user} /></TabPanel>
       <TabPanel id="conversations" value={tab} idPrefix="user"><UserConversations conversations={user.conversations} /></TabPanel>
+      <TabPanel id="business" value={tab} idPrefix="user"><BusinessProfileTab user={user} /></TabPanel>
       <TabPanel id="access" value={tab} idPrefix="user"><UserAccess user={user} /></TabPanel>
       {actions.modals}
     </>

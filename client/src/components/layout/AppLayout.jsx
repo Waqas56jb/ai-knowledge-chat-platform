@@ -10,7 +10,7 @@ import Icon from '../common/Icon';
 import { BrandMark } from '../common/Logo';
 import MenuWrap from '../common/MenuWrap';
 
-const NAV = [['/app', 'layout-dashboard', 'Overview'], ['/app/history', 'history', 'Chat History'], ['/app/sources', 'library', 'Knowledge Sources'], ['/app/settings', 'settings', 'Settings']];
+const NAV = [['/app', 'layout-dashboard', 'Overview'], ['/app/history', 'history', 'Chat History'], ['/app/settings', 'settings', 'Settings']];
 const NOTIF_ICON = { source: 'file-text', invitation: 'mail', conversation: 'message-square', job: 'clock', system: 'info' };
 const notifIcon = type => NOTIF_ICON[String(type || '').split(/[._]/)[0]] || 'bell';
 
@@ -19,7 +19,6 @@ function crumbFor(parts, threads) {
     case undefined: return 'Overview';
     case 'chat': return parts[2] ? ((threads[parts[2]] || {}).conv || {}).title || 'Conversation' : 'New chat';
     case 'history': return 'Chat history';
-    case 'sources': return parts[2] ? 'Source details' : 'Knowledge sources';
     case 'profile': return 'Profile';
     case 'settings': return 'Settings';
     default: return 'Not found';

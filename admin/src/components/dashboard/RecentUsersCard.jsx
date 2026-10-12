@@ -26,11 +26,11 @@ export default function RecentUsersCard({ users, loading, limit = 5 }) {
         <ul className="divide-y divide-line">
           {rows.map(u => (
             <li key={u.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
-              <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
+              <div className="flex min-w-0 flex-1 basis-64 items-center gap-3">
                 <Avatar name={u.name} />
                 <div className="min-w-0">
-                  <Link to={`/admin/users/${u.id}`} className="block truncate font-medium text-ink hover:text-primary-text">{u.name}</Link>
-                  <p className="truncate text-[12.5px] text-muted">{u.email}</p>
+                  <Link to={`/admin/users/${u.id}`} className="block break-words font-medium leading-snug text-ink hover:text-primary-text">{u.name}</Link>
+                  <p className="truncate text-[12.5px] text-muted" title={u.email}>{u.email}</p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

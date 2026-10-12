@@ -50,3 +50,22 @@ export async function copyText(text) {
     try { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (e2) { return false; }
   }
 }
+
+/**
+ * Width of an element (ResizeObserver), for layouts that depend on the space a card actually gets
+ * rather than the viewport. Returns [ref, width]; width is 0 until measured.
+ */
+export function useElementWidth() {
+  const [el, setEl] = useState(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    if (!el) return undefined;
+    const measure = () => setWidth(Math.round(el.getBoundingClientRect().width));
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [el]);
+  return [setEl, width];
+}

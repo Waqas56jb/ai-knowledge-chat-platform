@@ -15,11 +15,37 @@ export const KINDS = {
   youtube: { label: 'YouTube video or channel', description: 'Index the transcript of a public video, or every video of a channel.', icon: Youtube, types: ['youtube'] },
   document: { label: 'Document', description: 'Upload a PDF, DOCX, TXT or Markdown file.', icon: FileText, types: ['pdf', 'docx', 'txt', 'markdown'] },
   text: { label: 'Text content', description: 'Paste or write policies, FAQs and business knowledge.', icon: AlignLeft, types: ['business_knowledge', 'txt', 'markdown'] },
-  conversation: { label: 'Client conversation', description: 'Call notes, email threads or chat transcripts with a client.', icon: MessagesSquare, types: ['client_conversation'] }
+  conversation: { label: 'Client conversation', description: 'Paste call notes or email threads, or upload chat exports (e.g. WhatsApp .txt). Anonymised into reusable lessons.', icon: MessagesSquare, types: ['client_conversation'] }
 };
 
 export const CONVERSATION_CATEGORIES = ['Negotiation', 'Support', 'Onboarding', 'Scope change', 'Other'];
 export const EXT_LABEL = { pdf: '.pdf', docx: '.docx', txt: '.txt', markdown: '.md' };
+/** Most files one client-conversation upload may contain (each file becomes its own source). */
+export const MAX_CONVERSATION_FILES = 20;
+
+/** "whatsapp_chat-with-acme.txt" → "whatsapp chat with acme" */
+export const titleFromName = name => String(name).replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+/**
+ * Source title for each uploaded conversation file. The title is indexed with the anonymised lessons and is not
+ * anonymised itself, and chat exports are usually named after the client ("WhatsApp Chat with Jane Doe.txt"),
+ * so file names are never used: without an entered title it is "Client conversation · <context> · <date>".
+ * Several files get " (2 of 5)" so each source stays distinguishable.
+ */
+export function conversationFileTitle(f, file, now = new Date()) {
+  const n = f.conversationFiles.length;
+  const i = Math.max(0, f.conversationFiles.indexOf(file));
+  const base = f.title.trim() || ['Client conversation', f.category && f.category !== 'Other' ? f.category : null, now.toISOString().slice(0, 10)].filter(Boolean).join(' · ');
+  return (n > 1 ? `${base} (${i + 1} of ${n})` : base).slice(0, 300);
+}
+
+/** Problem with one conversation file, or '' when it can be uploaded. */
+export function conversationFileError(file, maxFileSizeMb) {
+  if (!FILE_TYPES[fileExt(file.name)]) return `“${file.name}” is not a supported file type. Use .pdf, .docx, .txt or .md.`;
+  if (!file.size) return `“${file.name}” is empty.`;
+  if (file.size > maxFileSizeMb * 1024 * 1024) return `“${file.name}” is larger than the ${maxFileSizeMb} MB limit.`;
+  return '';
+}
 
 export const initialForm = defaultVisibility => ({
   kind: null,
@@ -27,11 +53,11 @@ export const initialForm = defaultVisibility => ({
   youtubeUrl: '', transcript: '', maxVideos: 50,
   file: null,
   text: '', textType: 'business_knowledge',
-  conversationText: '', category: '',
+  conversationMode: 'paste', conversationText: '', conversationFiles: [], category: '',
   visibility: defaultVisibility === 'all' ? 'workspace' : defaultVisibility || 'workspace', allowedUserIds: []
 });
 
-export const isDirty = f => !!(f.kind || f.title || f.description || f.tags.length || f.youtubeUrl || f.transcript || f.file || f.text || f.conversationText);
+export const isDirty = f => !!(f.kind || f.title || f.description || f.tags.length || f.youtubeUrl || f.transcript || f.file || f.text || f.conversationText || f.conversationFiles.length);
 
 const meta = { title: requiredText('Title', 300), description: z.string().trim().max(2000, 'Description must be 2000 characters or fewer.') };
 const MAX_TEXT = 2000000;
@@ -45,15 +71,19 @@ const schemas = {
   }),
   document: z.object({ ...meta }),
   text: z.object({ ...meta, text: z.string().trim().min(20, 'Enter at least 20 characters of content.').max(MAX_TEXT, 'Content is too long.') }),
-  conversation: z.object({ ...meta, conversationText: z.string().trim().min(20, 'Paste at least 20 characters of the conversation.').max(MAX_TEXT, 'Conversation is too long.'), category: z.string().min(1, 'Choose a context.') })
+  conversation: z.object({ ...meta, conversationText: z.string().trim().min(20, 'Paste at least 20 characters of the conversation.').max(MAX_TEXT, 'Conversation is too long.'), category: z.string().min(1, 'Choose a context.') }),
+  // uploaded files: the title is optional (each file's name is used), the files are checked separately
+  conversationFiles: z.object({ title: z.string().trim().max(300, 'Title must be 300 characters or fewer.'), description: meta.description, category: z.string().min(1, 'Choose a context.') })
 };
+
+const schemaFor = f => (f.kind === 'conversation' && f.conversationMode === 'files' ? schemas.conversationFiles : schemas[f.kind]);
 
 /** Validate one step; returns an errors object ({} when valid). */
 export function validateStep(stepId, f, { maxFileSizeMb, supportedTypes }) {
   const errors = {};
   if (stepId === 'type') { if (!f.kind) errors.kind = 'Choose a source type to continue.'; return errors; }
   if (stepId === 'details') {
-    const r = schemas[f.kind].safeParse(f);
+    const r = schemaFor(f).safeParse(f);
     if (!r.success) r.error.issues.forEach(i => { if (!errors[i.path[0]]) errors[i.path[0]] = i.message; });
     if (f.kind === 'document') {
       if (!f.file) errors.file = 'Choose a file to upload.';
@@ -62,6 +92,14 @@ export function validateStep(stepId, f, { maxFileSizeMb, supportedTypes }) {
         if (!t || !supportedTypes.includes(t)) errors.file = 'This file type is not supported.';
         else if (f.file.size > maxFileSizeMb * 1024 * 1024) errors.file = `The file is larger than the ${maxFileSizeMb} MB limit.`;
         else if (!f.file.size) errors.file = 'The file is empty.';
+      }
+    }
+    if (f.kind === 'conversation' && f.conversationMode === 'files') {
+      if (!f.conversationFiles.length) errors.conversationFiles = 'Choose at least one file to upload.';
+      else if (f.conversationFiles.length > MAX_CONVERSATION_FILES) errors.conversationFiles = `Upload at most ${MAX_CONVERSATION_FILES} files at a time.`;
+      else {
+        const bad = f.conversationFiles.map(file => conversationFileError(file, maxFileSizeMb)).find(Boolean);
+        if (bad) errors.conversationFiles = bad;
       }
     }
     return errors;
@@ -104,6 +142,7 @@ export function toPayload(f) {
   }
   if (f.kind === 'document') return { ...base, kind: 'document', file: f.file };
   if (f.kind === 'text') return { ...base, kind: 'text', sourceType: f.textType, text: f.text.trim() };
+  if (f.kind === 'conversation' && f.conversationMode === 'files') return { ...base, kind: 'conversationFiles', files: f.conversationFiles, category: f.category };
   return { ...base, kind: 'text', sourceType: 'client_conversation', text: f.conversationText.trim(), category: f.category };
 }
 

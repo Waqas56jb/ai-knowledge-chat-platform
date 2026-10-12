@@ -33,8 +33,8 @@ export default function NeedsAttentionCard({ stats, loading }) {
             <li key={r.key}>
               <Link to={r.to} className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-subtle">
                 <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-lg', r.value ? TONES[r.tone] : TONES.neutral)}><Icon className="h-4 w-4" aria-hidden="true" /></span>
-                <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">{r.label}</span>
-                <b className={cn('font-display text-[16px] font-semibold', r.value ? 'text-ink' : 'text-faint')}>{formatNumber(r.value)}</b>
+                <span className="min-w-0 flex-1 text-[13.5px] leading-snug text-ink">{r.label}</span>
+                <b className={cn('shrink-0 font-display text-[16px] font-semibold tabular-nums', r.value ? 'text-ink' : 'text-faint')}>{formatNumber(r.value)}</b>
                 <ChevronRight className="h-4 w-4 text-faint transition group-hover:translate-x-0.5" aria-hidden="true" />
               </Link>
             </li>

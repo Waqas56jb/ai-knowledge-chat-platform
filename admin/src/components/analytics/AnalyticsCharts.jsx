@@ -42,7 +42,7 @@ export function ProcessingStatusCard({ analytics: a, loading }) {
   return (
     <ChartCard title="Source processing status" description="Current status of every knowledge source" loading={loading} empty={!loading && !items.some(i => i.value)} height={200}
       footer={a && footerNote(`Job success rate ${formatPercent(a.kpis.processingSuccess.value)} (completed vs failed jobs in this period).`)}>
-      <RankedBarChart rows={items} dataKey="value" name="Sources" color={SERIES.ink} labelWidth={84} ariaLabel="Bar chart of knowledge sources by processing status" />
+      <RankedBarChart rows={items} dataKey="value" name="Sources" color={SERIES.ink} ariaLabel="Bar chart of knowledge sources by processing status" />
     </ChartCard>
   );
 }
@@ -56,10 +56,10 @@ export function TopUsersCard({ analytics: a, loading }) {
       emptyTitle="No questions in this period" emptyDescription="Users appear here once they ask the assistant questions."
       footer={rows.length > 0 && (
         <ul className="flex flex-wrap gap-x-3 gap-y-1 border-t border-line px-5 py-3 text-[12.5px]">
-          {rows.map(u => <li key={u.id}><Link to={`/admin/users/${u.id}`} className="link">{u.name}</Link></li>)}
+          {rows.map(u => <li key={u.id} className="min-w-0 max-w-full"><Link to={`/admin/users/${u.id}`} className="link break-words">{u.name}</Link></li>)}
         </ul>
       )}>
-      <RankedBarChart rows={rows} dataKey="questions" name="Questions" color={SERIES.primary} labelWidth={120}
+      <RankedBarChart rows={rows} dataKey="questions" name="Questions" color={SERIES.primary}
         onSelect={u => u?.id && navigate(`/admin/users/${u.id}`)} ariaLabel="Bar chart of the most active users by questions asked" />
     </ChartCard>
   );

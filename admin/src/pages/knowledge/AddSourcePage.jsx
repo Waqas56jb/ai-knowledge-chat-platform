@@ -12,8 +12,8 @@ import StepType from '../../components/knowledge/wizard/StepType';
 import StepDetails from '../../components/knowledge/wizard/StepDetails';
 import StepReview from '../../components/knowledge/wizard/StepReview';
 import VisibilityPicker from '../../components/knowledge/VisibilityPicker';
-import { STEPS, KINDS, initialForm, isDirty, validateStep, toPayload } from '../../components/knowledge/wizard/wizardModel';
-import { createKnowledgeSource } from '../../services/knowledgeService';
+import { STEPS, KINDS, conversationFileTitle, initialForm, isDirty, validateStep, toPayload } from '../../components/knowledge/wizard/wizardModel';
+import { createKnowledgeSource, uploadConversationFiles } from '../../services/knowledgeService';
 import { getMe } from '../../services/authService';
 import { useDocumentTitle } from '../../hooks/useMisc';
 import { useQuery } from '../../hooks/useQuery';
@@ -66,6 +66,8 @@ function AddSourceWizard({ settings }) {
   const [attempted, setAttempted] = useState(() => new Set());
   const [saving, setSaving] = useState(false);
   const [duplicate, setDuplicate] = useState(null);
+  const [uploads, setUploads] = useState(null); // per-file status while uploading conversation files
+  const uploadsDone = !!uploads && uploads.every(u => u.status === 'done' || u.status === 'failed');
   const headingRef = useRef(null);
   const bodyRef = useRef(null);
   const firstRender = useRef(true);
@@ -97,8 +99,10 @@ function AddSourceWizard({ settings }) {
     }
     setSaving(true);
     setDuplicate(null);
+    const payload = toPayload(form);
+    if (payload.kind === 'conversationFiles') { await submitFiles(payload); return; }
     try {
-      const { source } = await createKnowledgeSource(toPayload(form));
+      const { source } = await createKnowledgeSource(payload);
       toast.success('Source added.', { description: `"${source.title}" was saved and queued for processing.` });
       navigate(`/admin/knowledge/${source.id}`);
     } catch (err) {
@@ -109,6 +113,37 @@ function AddSourceWizard({ settings }) {
       }
       toast.error(err.message);
     }
+  };
+
+  /** Upload each conversation file on its own; keep going on errors and show the result per file. */
+  const submitFiles = async payload => {
+    const { files } = payload;
+    const base = { ...payload };
+    delete base.files; delete base.kind;
+    setUploads(files.map(file => ({ file, status: 'queued' })));
+    const results = await uploadConversationFiles(files, base, {
+      titleFor: file => conversationFileTitle(form, file),
+      onUpdate: (i, patch) => setUploads(list => list.map((u, j) => (j === i ? { ...u, ...patch } : u)))
+    });
+    setSaving(false);
+    const ok = results.filter(x => x.status === 'done');
+    const failed = results.length - ok.length;
+    if (results.length === 1 && ok.length === 1) {
+      toast.success('Conversation uploaded.', { description: `"${ok[0].source.title}" is being anonymised and indexed.` });
+      navigate(`/admin/knowledge/${ok[0].source.id}`);
+      return;
+    }
+    if (!failed) toast.success(`${ok.length} conversations uploaded.`, { description: 'Each file is being anonymised and indexed as its own source.' });
+    else if (ok.length) toast.warning(`${ok.length} of ${results.length} files uploaded.`, { description: `${failed} failed; see the list for details.` });
+    else toast.error(results.length === 1 ? 'The file was not uploaded.' : 'No files were uploaded.', { description: results[0]?.error?.message });
+  };
+
+  /** After a partial failure: go back with only the failed files selected. */
+  const editFailed = () => {
+    const failedFiles = uploads.filter(u => u.status === 'failed').map(u => u.file);
+    setUploads(null);
+    update({ conversationFiles: failedFiles });
+    goTo(1);
   };
 
   const cancel = async () => {
@@ -126,7 +161,7 @@ function AddSourceWizard({ settings }) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <Card>
-          <div className="border-b border-line px-4 py-4 sm:px-6"><Stepper steps={STEPS} current={step} onJump={i => !saving && goTo(i)} /></div>
+          <div className="border-b border-line px-4 py-4 sm:px-6"><Stepper steps={STEPS} current={step} onJump={i => !saving && !uploads && goTo(i)} /></div>
           <form onSubmit={onSubmit} noValidate>
             <div ref={bodyRef} className="px-4 py-5 sm:px-6 sm:py-6">
               <p className="text-[12px] font-semibold uppercase tracking-wide text-faint">Step {step + 1} of {STEPS.length}</p>
@@ -139,7 +174,7 @@ function AddSourceWizard({ settings }) {
                 <VisibilityPicker value={form.visibility} onChange={visibility => update({ visibility })} allowedUserIds={form.allowedUserIds}
                   onUsersChange={allowedUserIds => update({ allowedUserIds })} usersError={errors.allowedUserIds} />
               )}
-              {stepId === 'review' && <StepReview form={form} onJump={goTo} />}
+              {stepId === 'review' && <StepReview form={form} onJump={goTo} uploads={uploads} />}
               {stepId === 'review' && duplicate && (
                 <div role="alert" className="mt-5 flex gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-[13px]">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
@@ -150,13 +185,23 @@ function AddSourceWizard({ settings }) {
             </div>
 
             <div className="flex flex-col-reverse gap-2 border-t border-line bg-subtle/40 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              {uploadsDone ? (
+                <>
+                  <span />
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                    {uploads.some(u => u.status === 'failed') && <Button icon={ArrowLeft} onClick={editFailed}>Retry failed files</Button>}
+                    <Button variant="primary" as={Link} to="/admin/knowledge" iconRight={ArrowRight}>Go to knowledge sources</Button>
+                  </div>
+                </>
+              ) : (<>
               <Button variant="ghost" onClick={cancel} disabled={saving}>Cancel</Button>
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 {step > 0 && <Button icon={ArrowLeft} onClick={() => goTo(step - 1)} disabled={saving}>Back</Button>}
                 {last
-                  ? <Button type="submit" variant="primary" icon={Plus} loading={saving}>{saving ? (form.kind === 'document' ? 'Uploading…' : 'Adding source…') : 'Add source'}</Button>
+                  ? <Button type="submit" variant="primary" icon={Plus} loading={saving}>{saving ? (form.kind === 'document' || uploads ? 'Uploading…' : 'Adding source…') : form.kind === 'conversation' && form.conversationMode === 'files' && form.conversationFiles.length > 1 ? `Upload ${form.conversationFiles.length} files` : 'Add source'}</Button>
                   : <Button type="submit" variant="primary" iconRight={ArrowRight}>Next: {STEPS[step + 1].label}</Button>}
               </div>
+              </>)}
             </div>
           </form>
         </Card>

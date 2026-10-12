@@ -58,6 +58,9 @@ export async function getSourceById(id) {
     jobs: (s.jobs || []).map(mapJob),
     relatedConversations: s.relatedConversations || [],
     content: s.content || null,
+    metadata: s.metadata || {},
+    /** Client conversations: { at, entries, parts, model } once anonymised and rewritten into playbook lessons. */
+    restructured: (s.metadata && s.metadata.restructured) || null,
     channelVideos: s.channelVideos || [],
     durationLabel: fmtDuration(s.durationSeconds),
     activity: (s.activity || []).map(mapAudit)
@@ -74,7 +77,7 @@ const visibilityFields = p => {
 /**
  * Create a source. payload (from the add wizard):
  *   { kind: 'youtube', url, transcript?, maxVideos? (channels), title?, description?, tags, visibility, allowedUserIds }
- *   { kind: 'document', file: File, title?, description?, tags, visibility, allowedUserIds }
+ *   { kind: 'document', file: File, title?, description?, tags, visibility, allowedUserIds, asConversation?, category? }
  *   { kind: 'text', sourceType, text, title, description?, category?, tags, visibility, allowedUserIds }
  * → { source, jobId }. A 409 duplicate error carries details.existingSourceId.
  */
@@ -98,6 +101,11 @@ export async function createKnowledgeSource(payload) {
     const vis = visibilityFields(payload);
     form.append('visibility', vis.visibility);
     if (vis.allowedUserIds) form.append('allowedUserIds', JSON.stringify(vis.allowedUserIds));
+    if (payload.asConversation) {
+      // a client conversation log (e.g. a WhatsApp export): anonymised and restructured by the server
+      form.append('asConversation', 'true');
+      if (payload.category) form.append('category', payload.category);
+    }
     const { data } = await request('/admin/knowledge/documents', { method: 'POST', form });
     return { ...data, source: mapSource(data.source) };
   }
@@ -105,6 +113,28 @@ export async function createKnowledgeSource(payload) {
   if (payload.category) body.category = payload.category;
   const r = await apiPost('/admin/knowledge/text', body);
   return { ...r, source: mapSource(r.source) };
+}
+
+/**
+ * Upload several client-conversation files, one request per file (each becomes its own source), and keep
+ * going when one fails. `base` = { title?, description?, tags, category, visibility, allowedUserIds };
+ * `titleFor(file, index)` names each source. `onUpdate(index, { status: 'uploading'|'done'|'failed', source?, error? })`
+ * reports progress. → [{ file, status, source?, error? }]
+ */
+export async function uploadConversationFiles(files, base, { titleFor, onUpdate } = {}) {
+  const results = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    onUpdate && onUpdate(i, { status: 'uploading' });
+    try {
+      const { source } = await createKnowledgeSource({ ...base, kind: 'document', asConversation: true, file, title: titleFor ? titleFor(file, i) : base.title });
+      results.push({ file, status: 'done', source });
+    } catch (error) {
+      results.push({ file, status: 'failed', error });
+    }
+    onUpdate && onUpdate(i, results[i]);
+  }
+  return results;
 }
 
 /** changes: { title, description, tags, notes, visibility, allowedUserIds } */

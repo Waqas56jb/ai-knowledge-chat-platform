@@ -13,7 +13,7 @@ const CARDS = [
 /** Six headline KPIs from `analytics.kpis`. */
 export default function DashboardKpis({ kpis, loading }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[1760px]:grid-cols-6">
       {CARDS.map(c => {
         const k = kpis?.[c.key];
         return (

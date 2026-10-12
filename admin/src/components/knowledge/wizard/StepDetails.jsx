@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, ImageOff, Youtube } from 'lucide-react';
+import { CheckCircle2, ClipboardPaste, ImageOff, Upload, Youtube } from 'lucide-react';
 import { FormField, Input, Textarea, Select } from '../../forms/FormField';
 import { Segmented } from '../../common/Tabs';
 import { SOURCE_TYPES } from '../../../constants/domain';
@@ -7,15 +7,21 @@ import { formatNumber } from '../../../utils/format';
 import TagInput from '../TagInput';
 import { parseYouTubeUrl, ytThumbnail } from '../sourceUtils';
 import DocumentFields from './DocumentFields';
+import ConversationFiles from './ConversationFiles';
+import { Notice } from '../../common/Misc';
 import { CONVERSATION_CATEGORIES, wordCount } from './wizardModel';
 
 /** Step 2: fields for the chosen source kind, plus shared title / description / tags. */
 export default function StepDetails({ form, update, errors, settings }) {
   const set = k => e => update({ [k]: e.target.value });
+  const convFiles = form.kind === 'conversation' && form.conversationMode === 'files';
+  const titleHelp = form.kind === 'youtube' ? 'Leave empty to use the video or channel title from YouTube.'
+    : convFiles ? `Optional. Leave empty for “Client conversation · context · date”${form.conversationFiles.length > 1 ? '; each file gets “(1 of N)”' : ''}. Titles are not anonymised, so do not include client names.`
+      : form.kind === 'conversation' ? 'Titles are not anonymised, so do not include client names.' : undefined;
   const meta = (
     <>
-      <FormField label={form.kind === 'conversation' ? 'Conversation title' : 'Title'} required={form.kind !== 'youtube'} optional={form.kind === 'youtube'} error={errors.title}
-        help={form.kind === 'youtube' ? 'Leave empty to use the video or channel title from YouTube.' : undefined}>
+      <FormField label={form.kind === 'conversation' ? 'Conversation title' : 'Title'} required={form.kind !== 'youtube' && !convFiles} optional={form.kind === 'youtube' || convFiles} error={errors.title}
+        help={titleHelp}>
         <Input value={form.title} onChange={set('title')} maxLength={300} placeholder={form.kind === 'conversation' ? 'e.g. Call notes: renewal pricing' : 'A clear, descriptive title'} />
       </FormField>
       <FormField label="Description" optional error={errors.description} help="Shown to administrators and used as context for answers.">
@@ -68,12 +74,23 @@ export default function StepDetails({ form, update, errors, settings }) {
   }
   return (
     <div className="space-y-5">
+      <Notice title="Privacy" tone="primary">
+        Conversations are anonymised by AI (names, phone numbers and emails removed) and rewritten into reusable negotiation and client-handling lessons before indexing. The original text and file are not kept.
+      </Notice>
+      <div>
+        <span className="label" id="conv-mode-label">How do you want to add it?</span>
+        <Segmented label="How do you want to add the conversation" value={form.conversationMode} onChange={v => update({ conversationMode: v })}
+          options={[['paste', 'Paste text', ClipboardPaste], ['files', 'Upload file(s)', Upload]]} />
+      </div>
+      {convFiles && (
+        <ConversationFiles files={form.conversationFiles} onChange={conversationFiles => update({ conversationFiles })} error={errors.conversationFiles} maxFileSizeMb={settings.maxFileSizeMb} />
+      )}
       {meta}
       <FormField label="Context" required error={errors.category} help="Saved as a tag so the conversation can be filtered later.">
         <Select value={form.category} onChange={set('category')} placeholder="Choose a context" options={CONVERSATION_CATEGORIES} />
       </FormField>
-      <ContentEditor label="Conversation text" value={form.conversationText} onChange={v => update({ conversationText: v })} error={errors.conversationText}
-        placeholder={'Paste call notes, an email thread or a chat transcript…\n\nClient: …\nUs: …'} />
+      {!convFiles && <ContentEditor label="Conversation text" value={form.conversationText} onChange={v => update({ conversationText: v })} error={errors.conversationText}
+        placeholder={'Paste call notes, an email thread or a chat transcript…\n\nClient: …\nUs: …'} />}
     </div>
   );
 }

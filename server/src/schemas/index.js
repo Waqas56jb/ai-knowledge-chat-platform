@@ -33,12 +33,28 @@ export const updateMeBody = z.object({
 }).strict();
 export const adminUserQuery = paginationSchema.extend({
   q: optionalText(100), status: z.enum(USER_STATUSES).optional(), role: z.enum(ROLES).optional(),
-  sort: z.enum(['name', 'email', 'createdAt', 'lastActiveAt', 'conversationCount', 'role', 'status']).default('createdAt'), dir: sortDir, format: csvFlag
+  // business-profile filters (case-insensitive exact match; product/clientType match any listed value)
+  country: optionalText(120), state: optionalText(120), city: optionalText(120), businessType: optionalText(120),
+  stage: z.enum(['starting', 'growing', 'established']).optional(), product: optionalText(80), clientType: optionalText(80),
+  hasProfile: z.enum(['true', 'false']).optional(),
+  sort: z.enum(['name', 'email', 'createdAt', 'lastActiveAt', 'conversationCount', 'role', 'status', 'businessName', 'country', 'stage']).default('createdAt'), dir: sortDir, format: csvFlag
 });
 export const adminUpdateUserBody = z.object({
   fullName: name.optional(), email: email.optional(), role: z.enum(ROLES).optional(), status: z.enum(USER_STATUSES).optional(),
   department: optionalText(60), notes: optionalText(2000), sourceAccess: z.enum(['workspace', 'restricted']).optional(),
   allowedSourceIds: z.array(uuid).max(1000).optional()
+}).strict();
+
+/* business profiles (admin) */
+const profileText = max => z.string().trim().max(max).nullable().optional();
+const profileList = z.array(z.string().trim().min(1).max(80)).max(12).optional();
+export const businessProfileBody = z.object({
+  businessName: profileText(200), businessType: profileText(120), userRole: profileText(120), city: profileText(120), state: profileText(120), country: profileText(120),
+  businessStage: z.enum(['starting', 'growing', 'established']).nullable().optional(), products: profileList, clientTypes: profileList,
+  monthlyVolume: profileText(120), teamSize: profileText(120), summary: profileText(2000)
+}).strict().refine(v => Object.keys(v).length > 0, { message: 'Provide at least one field.' });
+export const releaseProfileFieldsBody = z.object({
+  fields: z.array(z.enum(['businessName', 'businessType', 'userRole', 'city', 'state', 'country', 'businessStage', 'products', 'clientTypes', 'monthlyVolume', 'teamSize', 'summary'])).min(1)
 }).strict();
 
 /* invitations */
@@ -79,7 +95,9 @@ export const documentFields = z.object({
   title: optionalText(300), description: optionalText(2000),
   tags: z.preprocess(listField, tags),
   visibility: z.enum(VISIBILITIES).optional(),
-  allowedUserIds: z.preprocess(listField, z.array(uuid).max(1000).optional())
+  allowedUserIds: z.preprocess(listField, z.array(uuid).max(1000).optional()),
+  // the file is a client conversation log (chat export, call notes, emails): anonymise + restructure it
+  asConversation: z.enum(['true', 'false']).optional(), category: optionalText(60)
 }).strict();
 export const updateSourceBody = z.object({
   title: z.string().trim().min(1).max(300).optional(), description: optionalText(2000), tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),

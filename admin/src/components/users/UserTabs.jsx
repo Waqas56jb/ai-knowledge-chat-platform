@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Activity, ArrowRight, Ban, BookLock, Library, MailCheck, MailPlus, MailX, MessagesSquare, PencilLine, RotateCcw, Send, ShieldCheck, Trash2, UserX } from 'lucide-react';
+import { Activity, ArrowRight, Ban, BookLock, Briefcase, Library, MailCheck, MailPlus, MailX, MessagesSquare, PencilLine, RotateCcw, Send, ShieldCheck, Trash2, UserX } from 'lucide-react';
 import { Card, CardHeader } from '../common/Card';
 import StatusBadge from '../common/StatusBadge';
 import { ActivityTimeline, SourceTypeIcon } from '../common/Misc';
@@ -14,6 +14,7 @@ import { sourceAccessSummary } from './UserOverview';
 const ACTION_STYLE = {
   'user.updated': [PencilLine, 'neutral'], 'user.role_changed': [ShieldCheck, 'primary'],
   'user.suspended': [Ban, 'danger'], 'user.reactivated': [RotateCcw, 'success'], 'user.revoked': [UserX, 'warning'], 'user.deleted': [Trash2, 'danger'],
+  'user.business_profile_updated': [Briefcase, 'neutral'], 'user.business_profile_refreshed': [Briefcase, 'info'], 'user.business_profile_cleared': [Briefcase, 'warning'],
   'invitation.created': [MailPlus, 'info'], 'invitation.resent': [Send, 'info'], 'invitation.accepted': [MailCheck, 'success'], 'invitation.revoked': [MailX, 'warning']
 };
 

@@ -19,6 +19,7 @@ const { retrieve } = await import('../../src/services/retrieval.service.js');
 const { claimNextJob } = await import('../../src/services/processing.service.js');
 const { runJob } = await import('../../src/jobs/processSource.job.js');
 const { supabaseAdmin } = await import('../../src/config/supabase.js');
+const { refreshInsight } = await import('../../src/services/insight.service.js');
 
 let admin, member, other, reader, workspaceSrc, privateSrc;
 const auth = u => ({ Authorization: `Bearer ${u.token}` });
@@ -228,6 +229,103 @@ describe('content gaps (unanswered questions)', () => {
     const g = (await api().get(`${P}/admin/content-gaps/${gap.id}`).set(auth(admin))).body.data;
     expect(g).toMatchObject({ answeredSince: true, askCount: 3 });
     expect(g.occurrences).toHaveLength(4);
+  });
+});
+
+describe('client conversations are anonymised and restructured before indexing', () => {
+  it('raw log becomes playbook entries; contact details never reach the index', async () => {
+    ai.calls = [];
+    ai.chat = messages => {
+      const sent = messages[messages.length - 1].content;
+      // the deterministic scrub runs before the model sees anything
+      expect(sent).not.toMatch(/555-0199|maria@client\.com/);
+      return { content: JSON.stringify({ entries: [{ topic: 'Price objection', situation: 'A pharmacy buyer asked for a lower price on test strips.', clientPosition: 'Wanted 10 percent off.', approach: ['Anchored on the market rate', 'Offered faster payment instead of a discount'], outcome: 'Agreed at the original price with faster payment.', lesson: 'Trade terms, not price.' }] }), usage: { prompt_tokens: 1, completion_tokens: 1 }, model: 'mock' };
+    };
+    const raw = `Maria (maria@client.com, 813-555-0199): can you do 10% off the strips? (${RUN})\nMe: market rate is firm, but I can pay you in 24h instead of 7 days.\nMaria: ok deal.`;
+    const r = await api().post(`${P}/admin/knowledge/text`).set(auth(admin)).send({ title: `Pharmacy call (${RUN})`, sourceType: 'client_conversation', text: raw, category: 'Negotiation' });
+    expect(r.status).toBe(201);
+    expect(r.body.data.source.visibility).toBe('workspace');
+    await pool.query("update public.ai_knowledge_chat_jobs set status = 'processing', attempts = 1, locked_by = 'vitest', locked_at = now() where id = $1", [r.body.data.jobId]);
+    await runJob(await one('select * from public.ai_knowledge_chat_jobs where id = $1', [r.body.data.jobId]));
+    const src = await one('select status, metadata from public.ai_knowledge_chat_sources where id = $1', [r.body.data.source.id]);
+    expect(src.status).toBe('indexed');
+    expect(src.metadata.restructured).toMatchObject({ entries: 1, parts: 1 });
+    const content = (await one('select content from public.ai_knowledge_chat_source_contents where source_id = $1', [r.body.data.source.id])).content;
+    expect(content).toContain('Lesson: Trade terms, not price.');
+    expect(content).not.toMatch(/Maria|555-0199|maria@client/);
+    const chunks = await one("select string_agg(content, ' ') as t from public.ai_knowledge_chat_chunks where source_id = $1", [r.body.data.source.id]);
+    expect(chunks.t).not.toMatch(/Maria|555-0199/);
+    // re-indexing re-uses the restructured text (no second model call)
+    ai.calls = [];
+    await pool.query("insert into public.ai_knowledge_chat_jobs (source_id, job_type, status, attempts, max_attempts, locked_by, locked_at) values ($1, 'text_normalization', 'processing', 1, 3, 'vitest', now())", [r.body.data.source.id]);
+    await runJob(await one("select * from public.ai_knowledge_chat_jobs where source_id = $1 and status = 'processing'", [r.body.data.source.id]));
+    expect(ai.calls).toHaveLength(0);
+    ai.chat = null;
+  });
+});
+
+describe('hidden business profiles', () => {
+  const PROFILE = { businessName: `Sun Supplies ${RUN}`, businessType: 'test strip reseller', userRole: 'owner', city: 'Tampa', state: 'Florida', country: 'United States', businessStage: 'growing', products: ['Test Strips'], clientTypes: ['pharmacies'], monthlyVolume: null, teamSize: '3 people', summary: 'Runs a small reseller in Florida.' };
+  it("is built from the member's own messages and used (fenced) in later answers", async () => {
+    ai.chat = JSON.stringify({ outcome: 'insufficient_evidence', answer: '', citations: [] });
+    await api().post(`${P}/chat`).set(auth(other)).send({ message: `I run Sun Supplies in Tampa, Florida with 3 people, selling test strips to pharmacies (${RUN})` });
+    ai.calls = [];
+    ai.chat = () => ({ content: JSON.stringify(PROFILE), usage: { prompt_tokens: 1, completion_tokens: 1 }, model: 'mock' });
+    const p = await refreshInsight(other.id, { force: true });
+    expect(p).toMatchObject({ businessName: `Sun Supplies ${RUN}`, state: 'Florida', businessStage: 'growing', products: ['test strips'] });
+    // only the member's own messages are sent, as fenced data
+    expect(ai.calls[0][1].content).toContain('<message n="1">');
+    expect(ai.calls[0][1].content).toContain('Tampa, Florida');
+    // the profile reaches the chat prompt as background, never shown to the member
+    ai.calls = [];
+    ai.chat = JSON.stringify({ outcome: 'answered', answer: 'Discounts above ten percent require a longer contract or upfront payment [1].', citations: [1] });
+    await api().post(`${P}/chat`).set(auth(other)).send({ message: `What is the discount policy ${RUN}?` });
+    expect(ai.calls[0].some(m => m.role === 'system' && /<member_profile>[\s\S]*Florida/.test(m.content))).toBe(true);
+    const me = await api().get(`${P}/users/me`).set(auth(other));
+    expect(JSON.stringify(me.body)).not.toMatch(/Sun Supplies|businessProfile/);
+    const ov = await api().get(`${P}/users/me/overview`).set(auth(other));
+    // (the overview lists the member's own conversation titles, so only profile-only data is checked)
+    expect(JSON.stringify(ov.body)).not.toMatch(/Runs a small reseller|businessProfile|member_profile|test strip reseller/);
+  });
+  it('admins filter users by profile fields and see the profile; members cannot', async () => {
+    const byState = await api().get(`${P}/admin/users?state=florida&product=test%20strips&stage=growing`).set(auth(admin));
+    expect(byState.status).toBe(200);
+    expect(byState.body.data.map(u => u.id)).toContain(other.id);
+    expect(byState.body.data.find(u => u.id === other.id).business).toMatchObject({ state: 'Florida', country: 'United States' });
+    const none = await api().get(`${P}/admin/users?state=Alaska`).set(auth(admin));
+    expect(none.body.data.map(u => u.id)).not.toContain(other.id);
+    const byName = await api().get(`${P}/admin/users?q=${encodeURIComponent(`Sun Supplies ${RUN}`)}`).set(auth(admin));
+    expect(byName.body.data.map(u => u.id)).toEqual([other.id]);
+    const opts = await api().get(`${P}/admin/users/insight-options`).set(auth(admin));
+    expect(opts.body.data.states.map(s => s.value)).toContain('Florida');
+    expect(opts.body.data.stages).toEqual(['starting', 'growing', 'established']);
+    const detail = await api().get(`${P}/admin/users/${other.id}`).set(auth(admin));
+    expect(detail.body.data.businessProfile).toMatchObject({ city: 'Tampa', teamSize: '3 people' });
+    const csv = await api().get(`${P}/admin/users?format=csv&state=Florida`).set(auth(admin));
+    expect(csv.text).toContain('Business name');
+    expect(csv.text).toContain(`Sun Supplies ${RUN}`);
+    expect((await api().get(`${P}/admin/users/${other.id}/business-profile`).set(auth(member))).status).toBe(403);
+    expect((await api().get(`${P}/admin/users?state=Florida`).set(auth(member))).status).toBe(403);
+  });
+  it('admin edits are kept when the AI refreshes; release, clear and delete-all behave', async () => {
+    const ed = await api().patch(`${P}/admin/users/${other.id}/business-profile`).set(auth(admin)).send({ state: 'Georgia', products: ['Insulin Pens'] });
+    expect(ed.status).toBe(200);
+    expect(ed.body.data).toMatchObject({ state: 'Georgia', products: ['insulin pens'] });
+    expect(ed.body.data.manualFields.sort()).toEqual(['products', 'state']);
+    expect((await api().patch(`${P}/admin/users/${other.id}/business-profile`).set(auth(admin)).send({ businessStage: 'huge' })).status).toBe(422);
+    expect((await api().patch(`${P}/admin/users/${other.id}/business-profile`).set(auth(admin)).send({})).status).toBe(422);
+    ai.chat = () => ({ content: JSON.stringify(PROFILE), usage: {}, model: 'mock' });
+    const re = await api().post(`${P}/admin/users/${other.id}/business-profile/refresh`).set(auth(admin));
+    expect(re.status).toBe(200);
+    expect(re.body.data).toMatchObject({ state: 'Georgia', products: ['insulin pens'], city: 'Tampa' });
+    const rel = await api().post(`${P}/admin/users/${other.id}/business-profile/release`).set(auth(admin)).send({ fields: ['state'] });
+    expect(rel.body.data.manualFields).toEqual(['products']);
+    const audit = await one("select count(*)::int as n from public.ai_knowledge_chat_audit_logs where entity_id = $1 and action like 'user.business_profile%'", [other.id]);
+    expect(audit.n).toBeGreaterThanOrEqual(3);
+    // the member deleting all their conversations also removes what was learned from them
+    expect((await api().delete(`${P}/users/me/conversations`).set(auth(other))).status).toBe(200);
+    expect((await api().get(`${P}/admin/users/${other.id}/business-profile`).set(auth(admin))).body.data).toBe(null);
+    ai.chat = null;
   });
 });
 

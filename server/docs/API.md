@@ -106,12 +106,25 @@ Authentication, role, rate-limit and body-validation failures happen before the 
 ## Admin (all require role `admin`)
 
 ### Users `/admin/users`
-- `GET ?q=&status=&role=&sort=name|email|createdAt|lastActiveAt|conversationCount|role|status&dir=&page=&pageSize=&format=csv` → `AdminUser[]`, `meta.stats: { total, active, suspended, revoked, pending_invitations }`
-- `GET /:id` → `AdminUser & { allowedSourceIds, conversations: [{ id, title, reviewStatus, createdAt, updatedAt, messageCount, outcome }], invitations: [{ id, email, role, status, createdAt, expiresAt, acceptedAt, revokedAt, codeHint }], accessibleSources: [{ id, title, type, status, visibility }], activity: AuditRow[] }`
+- `GET ?q=&status=&role=&country=&state=&city=&businessType=&stage=starting|growing|established&product=&clientType=&hasProfile=true|false&sort=name|email|createdAt|lastActiveAt|conversationCount|role|status|businessName|country|stage&dir=&page=&pageSize=&format=csv` → `AdminUser[]`, `meta.stats: { total, active, suspended, revoked, pending_invitations }`
+  - `q` also matches the business name. The profile filters are case-insensitive exact matches, and `product`/`clientType` match any value in the list. CSV includes the business columns.
+- `GET /insight-options` → `{ countries, states, businessTypes, products, clientTypes: [{ value, count }], stages: ['starting','growing','established'] }` (values for the filter dropdowns)
+- `GET /:id` → `AdminUser & { allowedSourceIds, businessProfile: BusinessProfile | null, conversations: [{ id, title, reviewStatus, createdAt, updatedAt, messageCount, outcome }], invitations: [{ id, email, role, status, createdAt, expiresAt, acceptedAt, revokedAt, codeHint }], accessibleSources: [{ id, title, type, status, visibility }], activity: AuditRow[] }`
 - `PATCH /:id` `{ fullName?, email?, role?, status?, department?, notes?, sourceAccess?: 'workspace'|'restricted', allowedSourceIds?: uuid[] }`
 - `POST /:id/suspend`, `POST /:id/reactivate`, `POST /:id/revoke`, `DELETE /:id` (deletes the auth account; conversations cascade). You cannot change/suspend/delete yourself or remove the last active admin.
 
-`AdminUser = { id, email, name, fullName, role, status, department, notes, sourceAccess, avatarUrl, timezone, language, createdAt, updatedAt, lastActiveAt, conversationCount, questionsAsked }`
+`AdminUser = { id, email, name, fullName, role, status, department, notes, sourceAccess, avatarUrl, timezone, language, createdAt, updatedAt, lastActiveAt, conversationCount, questionsAsked, business: { name, type, role, city, state, country, stage, products[], clientTypes[], updatedAt } }`. `business` fields are null or `[]` until a profile exists.
+
+#### Hidden business profile `/admin/users/:id/business-profile`
+The AI builds this profile automatically from the member's **own** chat messages and keeps it updated about 2 minutes after a conversation goes quiet. It is used as background when answering that member, so answers fit their business, and it connects their conversations. It is never shown to the member and is never returned by user endpoints. If the member deletes all their conversations, the profile is deleted too.
+- `GET` → `BusinessProfile | null`
+- `PATCH` `{ businessName?, businessType?, userRole?, city?, state?, country?, businessStage?: 'starting'|'growing'|'established'|null, products?: string[], clientTypes?: string[], monthlyVolume?, teamSize?, summary? }`. Edited fields are added to `manualFields`, and the AI never overwrites them. 422 for invalid values or an empty body.
+- `POST /refresh` → rebuild from the conversations now; returns the profile
+- `POST /release` `{ fields: [...] }` → hand those fields back to the AI (removes them from `manualFields`)
+- `DELETE` → `{ cleared }`
+- All changes are audited (`user.business_profile_*`).
+
+`BusinessProfile = { businessName, businessType, userRole, city, state, country, businessStage, products[], clientTypes[], monthlyVolume, teamSize, summary, manualFields[], messagesAnalyzed, lastMessageAt, generatedAt, updatedAt, updatedById }`
 
 ### Invitations `/admin/invitations`
 - `GET ?q=&status=pending|accepted|expired|revoked&page=&pageSize=&format=csv` → `Invitation[]`, `meta.stats: { total, pending, accepted, expired, revoked }`
@@ -123,8 +136,14 @@ Authentication, role, rate-limit and body-validation failures happen before the 
 ### Knowledge `/admin/knowledge`
 - `GET ?q=&type=&status=&ownerId=&added=7d|30d|90d&sort=title|createdAt|updatedAt|chunkCount|status|type&dir=&page=&pageSize=&format=csv` → `(Source & { activeJob: { id, status, progress, step } | null })[]`, `meta.stats: { total, indexed, pending, processing, failed, disabled, recent, chunks }`, `meta.owners: [{ id, name }]`
 - `POST /youtube` `{ url (video or channel), title?, description?, tags?, visibility?, allowedUserIds?, transcript? (paste to skip automatic captions), maxVideos? (channels only, 1–500, default 50: newest uploads to index) }` → 201 `{ source, jobId }`. Re-processing a channel (`POST /:id/process`) adds new uploads and skips videos already present.
-- `POST /documents` multipart: `file` (PDF/DOCX/TXT/MD) + fields `title?, description?, tags? (comma list or JSON array), visibility?, allowedUserIds?` → 201 `{ source, jobId }`
-- `POST /text` `{ title, text, sourceType?: 'business_knowledge'|'txt'|'markdown'|'client_conversation', description?, category?, tags?, visibility?, allowedUserIds? }` → 201 `{ source, jobId }` (client conversations default to `restricted`)
+- `POST /documents` multipart: `file` (PDF/DOCX/TXT/MD) + fields `title?, description?, tags? (comma list or JSON array), visibility?, allowedUserIds?, asConversation? ('true' = the file is a client conversation log, e.g. a WhatsApp export), category?` → 201 `{ source, jobId }`
+- `POST /text` `{ title, text, sourceType?: 'business_knowledge'|'txt'|'markdown'|'client_conversation', description?, category?, tags?, visibility?, allowedUserIds? }` → 201 `{ source, jobId }`
+- **Client conversations** (`sourceType: 'client_conversation'`, or a document uploaded with `asConversation=true`) are not indexed as they are.
+  1. Contact details are removed.
+  2. The AI rewrites the log into anonymised playbook entries: situation, what the client wanted or objected to, how it was handled, outcome, lesson. People are referred to only by role.
+  3. Only that result is stored and indexed. The raw text and the uploaded file are discarded.
+  - Source `metadata.restructured = { at, entries, parts, model }`.
+  - If nothing reusable is found, the job fails with a clear message.
 - `GET /:id` → `Source & { notes, metadata, allowedUsers: [{ id, name, email }], jobs: Job[], relatedConversations: [{ id, title, userId, userName, updatedAt, citations }], content: { preview, length, language, provider } | null, channelVideos: [...], activity }`
 - `PATCH /:id` `{ title?, description?, tags?, notes?, visibility?, allowedUserIds? }`, `DELETE /:id`
 - `POST /:id/process` (index / re-index), `POST /:id/retry` (failed only), `POST /:id/disable`, `POST /:id/enable`, `GET /:id/download`

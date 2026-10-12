@@ -140,7 +140,7 @@ async function main() {
   const privateSrc = await call('POST', '/admin/knowledge/text', { token: A, body: { title: `Project Falcon Budget ${tag}`, sourceType: 'business_knowledge', visibility: 'private',
     text: `Confidential: the Project Falcon ${RUN} budget is 42 million dollars and was approved by the board in March.` } });
   created.sources.push(privateSrc.data?.source.id);
-  const restricted = await call('POST', '/admin/knowledge/text', { token: A, body: { title: `Finance Escalation Rules ${tag}`, sourceType: 'client_conversation', visibility: 'restricted', allowedUserIds: [roId],
+  const restricted = await call('POST', '/admin/knowledge/text', { token: A, body: { title: `Finance Escalation Rules ${tag}`, sourceType: 'business_knowledge', visibility: 'restricted', allowedUserIds: [roId],
     text: `Finance escalation ${RUN}: invoices above 50,000 dollars require approval from the chief financial officer within two business days.` } });
   created.sources.push(restricted.data?.source.id);
 

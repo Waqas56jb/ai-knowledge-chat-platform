@@ -12,7 +12,8 @@ import { logger } from '../utils/logger.js';
 import { jobReporter } from '../services/processing.service.js';
 import { getSettings } from '../services/settings.service.js';
 import { transcriptProvider } from '../services/transcript.service.js';
-import { downloadDocument, extractText } from '../services/document.service.js';
+import { downloadDocument, extractText, removeDocument } from '../services/document.service.js';
+import { restructureConversation } from '../services/restructure.service.js';
 import { chunkText, chunkPages, chunkSegments, normalizeText } from '../services/chunking.service.js';
 import { embed } from '../services/openai.service.js';
 import { listChannelVideos } from '../services/youtube.service.js';
@@ -112,6 +113,44 @@ export async function runJob(job) {
       await r.progress(30, 'Normalize', `Transcript has ${t.segments.length} segments.`);
       chunks = chunkSegments(t.segments, chunkOpts);
       if (!durationSeconds && t.segments.length) { const l = t.segments[t.segments.length - 1]; durationSeconds = Math.ceil(l.start + (l.duration || 0)); }
+    } else if (source.source_type === 'client_conversation') {
+      // raw client conversations are anonymised and restructured into playbook entries before indexing
+      let text;
+      if (source.metadata?.restructured) {
+        await r.progress(10, 'Fetch content', 'Re-using the restructured conversation.');
+        text = (await one(`select content from ${T.sourceContents} where source_id = $1`, [source.id]))?.content;
+        if (!text) throw permanent('The conversation content is missing. Upload it again.');
+      } else {
+        let raw;
+        if (source.storage_path) {
+          await r.progress(5, 'Fetch content', 'Reading the uploaded conversation file.');
+          const ex = await extractText(await downloadDocument(source.storage_path), source.metadata?.file?.type || 'txt');
+          raw = ex.text;
+        } else {
+          await r.progress(5, 'Fetch content', 'Reading the submitted conversation.');
+          raw = (await one(`select content from ${T.sourceContents} where source_id = $1`, [source.id]))?.content;
+        }
+        if (!raw?.trim()) throw permanent('The conversation is empty.');
+        if (raw.length > env.MAX_SOURCE_CHARACTERS) throw permanent(`The conversation is too long (more than ${env.MAX_SOURCE_CHARACTERS.toLocaleString()} characters).`);
+        await r.progress(10, 'Normalize', 'Anonymising and restructuring the conversation with AI.');
+        const out = await restructureConversation(normalizeText(raw), {
+          title: source.title, category: source.metadata?.category,
+          onProgress: (done, total) => r.progress(10 + Math.round((done / total) * 25), 'Normalize', `Restructured part ${done} of ${total}.`)
+        });
+        if (!out.entries) throw permanent('No reusable negotiation or client-handling content was found in this conversation.');
+        text = out.text;
+        // keep only the anonymised result: the raw log (and its uploaded file) is not retained
+        await saveContents(source.id, text, [], { provider: 'restructured' });
+        if (source.storage_path) {
+          await removeDocument(source.storage_path);
+          await query(`update ${T.sources} set storage_path = null where id = $1`, [source.id]);
+        }
+        metaPatch.restructured = { at: new Date().toISOString(), entries: out.entries, parts: out.parts, model: out.model };
+        // recorded right away so a retry after a later failure re-uses the result instead of restructuring again
+        await query(`update ${T.sources} set metadata = metadata || $2 where id = $1`, [source.id, JSON.stringify({ restructured: metaPatch.restructured })]);
+        await r.progress(35, 'Normalize', `Created ${out.entries} anonymised playbook entries.`);
+      }
+      chunks = chunkText(text, chunkOpts);
     } else if (['pdf', 'docx'].includes(source.source_type) || (source.storage_path && ['txt', 'markdown'].includes(source.source_type))) {
       await r.progress(10, 'Fetch content', 'Reading the stored file.');
       const buf = await downloadDocument(source.storage_path);

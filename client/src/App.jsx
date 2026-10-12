@@ -16,12 +16,10 @@ import NotFound, { AppNotFound } from './pages/NotFound';
 import Overview from './pages/Overview';
 import Chat from './pages/Chat';
 import History from './pages/History';
-import Sources from './pages/Sources';
-import SourceDetail from './pages/SourceDetail';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 
-const TITLES = { '/': '', '/login': 'Sign in', '/register': 'Register', '/forgot-password': 'Forgot password', '/reset-password': 'Reset password', '/app': 'Overview', '/app/history': 'Chat history', '/app/sources': 'Knowledge sources', '/app/profile': 'Profile', '/app/settings': 'Settings' };
+const TITLES = { '/': '', '/login': 'Sign in', '/register': 'Register', '/forgot-password': 'Forgot password', '/reset-password': 'Reset password', '/app': 'Overview', '/app/history': 'Chat history', '/app/profile': 'Profile', '/app/settings': 'Settings' };
 
 /** Workspace routes need a session; remember where the visitor was going. */
 function RequireAuth({ children }) {
@@ -43,7 +41,7 @@ function RouteEffects() {
   useEffect(() => {
     const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
     const parts = path.split('/').filter(Boolean);
-    const t = TITLES[path] ?? (parts[1] === 'chat' ? 'Chat' : parts[1] === 'sources' ? 'Source' : '');
+    const t = TITLES[path] ?? (parts[1] === 'chat' ? 'Chat' : '');
     document.title = (t ? t + ' · ' : '') + BRAND.name;
     window.scrollTo(0, 0);
     const c = document.querySelector('.content'); if (c) c.scrollTop = 0;
@@ -71,8 +69,9 @@ export default function App() {
           <Route path="chat" element={<Chat />} />
           <Route path="chat/:id" element={<Chat />} />
           <Route path="history" element={<History />} />
-          <Route path="sources" element={<Sources />} />
-          <Route path="sources/:id" element={<SourceDetail />} />
+          {/* The source library is hidden from users: citations show excerpts inline instead. */}
+          <Route path="sources" element={<Navigate to="/app/chat" replace />} />
+          <Route path="sources/:id" element={<Navigate to="/app/chat" replace />} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<AppNotFound />} />

@@ -9,6 +9,5 @@ export const sourceService = {
     return api.list('/sources', { q: q && q.trim(), type: type === 'all' ? undefined : type, sort: s, dir, page, pageSize }, opts);
   },
   get: id => api.get(`/sources/${id}`),
-  chunks: (id, { page = 1, pageSize = 20 } = {}) => api.list(`/sources/${id}/chunks`, { page, pageSize }),
   download: id => api.get(`/sources/${id}/download`)
 };

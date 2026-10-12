@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.js';
 import { claimNextJob, recoverStaleJobs } from '../services/processing.service.js';
 import { runJob } from './processSource.job.js';
 import { runCleanup } from './cleanup.job.js';
+import { sweepInsights } from '../services/insight.service.js';
 
 let timer = null, maintenance = null, stopping = false;
 const active = new Set();
@@ -32,7 +33,12 @@ export function startWorker() {
   if (timer || !env.WORKER_ENABLED) return;
   stopping = false;
   recoverStaleJobs().catch(() => {});
-  maintenance = setInterval(() => { recoverStaleJobs().catch(() => {}); runCleanup().catch(() => {}); }, 60000);
+  maintenance = setInterval(() => {
+    recoverStaleJobs().catch(() => {});
+    runCleanup().catch(() => {});
+    // business profiles: refresh users whose conversations have new messages
+    sweepInsights().catch(e => logger.warn({ code: e.code }, 'insight sweep failed'));
+  }, 60000);
   timer = setTimeout(tick, 500);
   logger.info({ concurrency: env.WORKER_CONCURRENCY }, 'processing worker started');
 }

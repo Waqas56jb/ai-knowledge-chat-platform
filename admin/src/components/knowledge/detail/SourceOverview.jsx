@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ExternalLink, ImageOff, History, ListVideo } from 'lucide-react';
+import { ExternalLink, ImageOff, History, ListVideo, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardHeader, DescriptionList } from '../../common/Card';
 import StatusBadge from '../../common/StatusBadge';
@@ -9,6 +9,7 @@ import Button from '../../common/Button';
 import { VISIBILITY, sourceTypeLabel } from '../../../constants/domain';
 import { actionLabel } from '../../../services/auditService';
 import { formatBytes, formatDateTime, formatNumber, relativeTime } from '../../../utils/format';
+import { restructuredLabel } from '../sourceUtils';
 
 /** Overview tab: metadata, file / YouTube info, visibility and recent activity. */
 export default function SourceOverview({ source: s }) {
@@ -33,11 +34,13 @@ export default function SourceOverview({ source: s }) {
           </div>
         </Card>
 
+        {s.type === 'client_conversation' && <ConversationPlaybookCard source={s} />}
         {s.type === 'youtube' && <YouTubeCard source={s} />}
         {s.isChannel && <ChannelVideos videos={s.channelVideos} />}
         {s.file && (
           <Card>
-            <CardHeader title="File" />
+            <CardHeader title={s.type === 'client_conversation' ? 'Uploaded file' : 'File'}
+              description={s.type === 'client_conversation' ? 'Only the name and size are recorded. The file itself is discarded after anonymisation and cannot be downloaded.' : undefined} />
             <div className="card-pad">
               <DescriptionList columns={2} items={[
                 ['File name', <span key="n" className="break-all">{s.file.name}</span>],
@@ -74,6 +77,35 @@ export default function SourceOverview({ source: s }) {
         </Card>
       </div>
     </div>
+  );
+}
+
+/** Client conversations are anonymised and rewritten into playbook lessons before indexing (metadata.restructured). */
+function ConversationPlaybookCard({ source: s }) {
+  const r = s.restructured;
+  const busy = s.status === 'pending' || s.status === 'processing';
+  return (
+    <Card>
+      <CardHeader title="Anonymised playbook" icon={ShieldCheck}
+        description="Names, phone numbers and emails were removed and the conversation was rewritten into reusable negotiation and client-handling lessons. The original text and file are not kept." />
+      <div className="card-pad">
+        {r ? (
+          <DescriptionList columns={2} items={[
+            ['Result', <span key="r" className="font-medium">{restructuredLabel(r)}</span>],
+            ['Restructured', r.at ? <span key="a" title={formatDateTime(r.at)}>{formatDateTime(r.at)}</span> : '—'],
+            r.parts > 1 && ['Processed in', `${formatNumber(r.parts)} parts`],
+            r.model && ['Model', <span key="m" className="font-mono text-[12.5px]">{r.model}</span>],
+            s.metadata?.category && ['Context', s.metadata.category]
+          ]} />
+        ) : (
+          <p className="text-[13.5px] text-muted">
+            {busy ? 'Not restructured yet. The conversation is anonymised and rewritten into lessons while it is processed.'
+              : s.status === 'failed' ? 'Restructuring did not complete. See the error above; nothing from the original conversation was indexed.'
+                : 'No restructuring details were recorded for this source.'}
+          </p>
+        )}
+      </div>
+    </Card>
   );
 }
 

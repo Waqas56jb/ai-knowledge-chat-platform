@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { BRAND, TYPES, groupOf } from '../../data/config';
 import { rel } from '../../utils/format';
@@ -71,7 +70,6 @@ export default function Message({ m, convId, isLast, busy, onCite, onEdit }) {
       <div className="fallback"><Icon name={outcome === 'error' ? 'alert-triangle' : 'alert-circle'} /><div>
         <p><b>{title}.</b> {m.content || hint}</p>
         {f && f.retryable && <p style={{ marginTop: 10 }}><button className="btn btn-sm btn-out" onClick={() => retry(m)} disabled={busy}><Icon name="refresh-cw" />Try again</button></p>}
-        {outcome !== 'error' && <p style={{ marginTop: 8 }}><Link className="link" to="/app/sources">Explore available sources</Link></p>}
       </div></div>
     );
   }
@@ -95,7 +93,6 @@ export default function Message({ m, convId, isLast, busy, onCite, onEdit }) {
         {isLast && canChat && <button className="icon-btn sm" onClick={() => regenerate(convId)} disabled={busy} aria-label="Ask again" data-tip="Regenerate"><Icon name="refresh-cw" /></button>}
         <MenuWrap menuClass="up left" trigger={p => <button className="icon-btn sm" aria-label="More actions" {...p}><Icon name="more-horizontal" /></button>}>
           <button onClick={() => copy(true)}><Icon name="copy" />Copy with source list</button>
-          {cites.length > 0 && <Link to={`/app/sources/${cites[0].sourceId}`}><Icon name="external-link" />Open first source page</Link>}
           <button onClick={report}><Icon name="alert-triangle" />Report a problem</button>
         </MenuWrap>
       </div>}

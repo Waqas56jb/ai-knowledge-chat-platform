@@ -86,7 +86,7 @@ export function ActivityTimeline({ items, emptyText = 'No activity yet.' }) {
             <span className={cn('relative z-[1] grid h-8 w-8 shrink-0 place-items-center rounded-full ring-4 ring-surface', tones[it.tone || 'neutral'])}>{Icon && <Icon className="h-4 w-4" aria-hidden="true" />}</span>
             <span className="min-w-0 flex-1 pt-0.5">
               <span className="block text-[13.5px] font-medium text-ink">{it.title}</span>
-              {it.description && <span className="block text-[13px] text-muted">{it.description}</span>}
+              {it.description && <span className="block text-[13px] text-muted [overflow-wrap:anywhere]">{it.description}</span>}
               <time className="mt-0.5 block text-[12px] text-faint" dateTime={it.at} title={formatDateTime(it.at)}>{relativeTime(it.at)}</time>
             </span>
           </>

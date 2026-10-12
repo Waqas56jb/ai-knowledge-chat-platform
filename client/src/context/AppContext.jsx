@@ -18,8 +18,7 @@ export const NEW_CHAT = '__new';
 const INITIAL_UI = settings => ({
   draft: '', scope: settings.defaultScope, panel: null, lpSeen: false,
   setTab: 'general', sideQ: '',
-  hist: { q: '', view: 'list' },
-  src: { q: '', type: 'all', sort: 'newest' }
+  hist: { q: '', view: 'list' }
 });
 
 /* Question prompts built from real indexed source titles. */

@@ -4,9 +4,7 @@ import { cn } from '../../../utils/cn';
 import { formatBytes } from '../../../utils/format';
 import Button from '../../common/Button';
 import { FILE_TYPES, fileExt } from '../sourceUtils';
-import { EXT_LABEL } from './wizardModel';
-
-const titleFromName = name => name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+import { EXT_LABEL, titleFromName } from './wizardModel';
 
 /**
  * Drag-and-drop file picker. The chosen File is kept in the form and uploaded as multipart `file`
