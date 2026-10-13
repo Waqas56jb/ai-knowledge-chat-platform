@@ -124,10 +124,10 @@ ul{padding:0;list-style:none}
 .auth-side::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(8,8,10,.55) 0%,rgba(8,8,10,.15) 40%,rgba(8,8,10,.88) 100%),radial-gradient(70% 50% at 0% 100%,rgba(217,182,118,.22),transparent 70%)}
 .auth-side .brand{color:#f4efe6}
 .auth-side .mid{margin:auto 0 0;max-width:520px}
-.auth-side .eb{display:inline-flex;align-items:center;gap:10px;font:500 11.5px/1 var(--body);letter-spacing:.22em;text-transform:uppercase;color:var(--gold-2);margin-bottom:22px}
+.auth-side .eb{display:inline-flex;align-items:center;gap:10px;font:800 14px/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold-2);margin-bottom:22px;padding:9px 14px;border-radius:999px;background:rgba(8,8,10,.55);border:1px solid rgba(217,182,118,.45);text-shadow:0 1px 8px rgba(0,0,0,.6)}
 .auth-side .eb::before{content:"";width:26px;height:1px;background:currentColor}
 .auth-side h2{font:600 clamp(36px,4.2vw,62px)/.98 var(--head);letter-spacing:-.05em;margin-bottom:18px;color:#f4efe6}
-.auth-side h2 em{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.01em;color:var(--gold-2)}
+.auth-side h2 em{font-family:var(--head);font-style:normal;font-weight:700;letter-spacing:-.04em;color:var(--gold-2)}
 .auth-side p{color:rgba(244,239,230,.75);font-size:16px;max-width:44ch}
 .auth-side ul{margin-top:26px;display:grid;gap:12px}
 .auth-side li{display:flex;gap:12px;align-items:center;color:rgba(244,239,230,.88);font-size:15px}
@@ -145,7 +145,7 @@ ul{padding:0;list-style:none}
 .auth-card>*:nth-child(2){animation-delay:.05s}.auth-card>*:nth-child(3){animation-delay:.1s}.auth-card>*:nth-child(4){animation-delay:.15s}.auth-card>*:nth-child(5){animation-delay:.2s}.auth-card>*:nth-child(n+6){animation-delay:.25s}
 .auth-card .brand.m{display:none;margin-bottom:30px}
 .auth-card h1{font-size:clamp(34px,3.2vw,46px);font-weight:600;letter-spacing:-.045em;line-height:1;margin-bottom:12px}
-.auth-card h1 em{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.01em;color:var(--pri-t)}
+.auth-card h1 em{font-family:inherit;font-style:normal;font-weight:inherit;letter-spacing:inherit;color:var(--pri-t)}
 .auth-card .sub{color:var(--muted);margin-bottom:30px;font-size:15.5px}
 .auth-card .input{height:52px;border-radius:14px}
 .auth-card .in-ic{top:17px}.auth-card .in-btn{top:9px;right:8px}

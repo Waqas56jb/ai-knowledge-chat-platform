@@ -1,5 +1,5 @@
 import { useApp } from '../context/AppContext';
-import { LANGS, SCOPES, TZ } from '../data/config';
+import { LANGS, TZ } from '../data/config';
 import Icon from '../components/common/Icon';
 import { Options } from '../components/common/ui';
 import { withCurrent } from './Profile';
@@ -41,7 +41,6 @@ export default function Settings() {
     chat: <>
       <Sw s={s} save={save} k="enterToSend" title="Press Enter to send" text="When off, use Ctrl+Enter to send and Enter for a new line." />
       <Sw s={s} save={save} k="showCitations" title="Show source citations" text="Display citation markers and source cards under answers." />
-      <Sel s={s} save={save} k="defaultScope" title="Default source scope" text="Which sources a new question searches by default." list={SCOPES} />
       <Sw s={s} save={save} k="showFollowups" title="Display follow-up suggestions" text="Suggest related questions after each answer." />
     </>,
     privacy: <>

@@ -48,7 +48,6 @@ export function AppProvider({ children }) {
   const [ui, setUiState] = useState(() => INITIAL_UI(settings));
   const composerRef = useRef(null);
   const pendingRef = useRef(pending); pendingRef.current = pending;
-  const scopeRef = useRef(ui.scope); scopeRef.current = ui.scope;
   const userRef = useRef(user); userRef.current = user;
   const settingsRef = useRef(settings); settingsRef.current = settings;
   const threadsRef = useRef(threads); threadsRef.current = threads;
@@ -186,7 +185,7 @@ export function AppProvider({ children }) {
     if (text.length > max) { toast(`Questions can be at most ${max} characters.`, 'err'); return; }
 
     const cmid = opts.clientMessageId || newClientMessageId();
-    const scope = opts.scope || scopeRef.current;
+    const scope = 'all'; // always search every source
     const localId = 'local-' + cmid, errId = 'err-' + cmid;
     if (opts.retry) updateThread(key, t => ({ ...t, messages: t.messages.filter(m => m.id !== errId) }));
     else {

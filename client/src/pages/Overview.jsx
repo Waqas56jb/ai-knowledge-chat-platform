@@ -21,7 +21,7 @@ export default function Overview() {
       <div className="home-hero">
         <Logo size={48} />
         <h1>{greet}{name ? <>, <em>{name}.</em></> : '.'}</h1>
-        <p>What would you like to know today? Ask in plain language and get answers backed by your knowledge library.</p>
+        <p>What would you like to know today? How can we grow your DTS business?</p>
       </div>
       <section className="home-comp" aria-label="Ask a question">
         <Composer placeholder="What would you like to know?" />

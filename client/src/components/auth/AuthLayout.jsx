@@ -5,7 +5,7 @@ import { LP_IMG } from '../../data/config';
 
 const AUTH_IMG = {
   login: [LP_IMG.hero, 'A long warehouse aisle lined with shelves of boxed stock', <>Your expert library, <em>ready when you are.</em></>, 'Pick up where you left off: your conversations, citations and the video moments behind them.'],
-  register: [LP_IMG.glucose, 'A blood glucose meter, lancing device and sealed tubs of test strips', <>Build on <em>expert answers.</em></>, 'Your invitation opens a private library of 209 expert videos on running a medical supply resale business.'],
+  register: [LP_IMG.glucose, 'A blood glucose meter, lancing device and sealed tubs of test strips', <>Build on <em>expert answers.</em></>, 'Your invitation opens a private library of 209 expert DTS videos on running a medical supply resale business.'],
   forgot: [LP_IMG.pharmacy, 'The bright interior of a retail pharmacy', <>Back in, <em>in a moment.</em></>, 'Reset your password and pick up your conversations where you left them.'],
   reset: [LP_IMG.pharmacy, 'The bright interior of a retail pharmacy', <>A fresh start, <em>same library.</em></>, 'Choose a new password. Your conversations stay exactly where they are.']
 };
@@ -19,7 +19,7 @@ export default function AuthLayout({ kind = 'login', title, sub, children }) {
         <div className="ab" style={{ backgroundImage: `url('${img}')` }} role="img" aria-label={alt} />
         <Link className="brand" to="/"><BrandMark size={32} /></Link>
         <div className="mid"><span className="eb">Expert answers for supply resellers</span><h2>{h}</h2><p>{p}</p>
-          <ul><li><Icon name="check" />Answers drawn from 209 expert videos</li><li><Icon name="check" />Citations that open the exact video moment</li><li><Icon name="check" />Access by invitation only</li></ul>
+          <ul><li><Icon name="check" />Answers drawn from 209 expert DTS videos</li><li><Icon name="check" />Citations that open the exact video moment</li><li><Icon name="check" />Access by invitation only</li></ul>
           <div className="aq"><q>Good advice should always show where it came from.</q><small>The DTS AI standard</small></div>
         </div>
       </aside>

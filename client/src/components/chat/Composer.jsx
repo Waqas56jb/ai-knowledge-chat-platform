@@ -1,12 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SCOPES } from '../../data/config';
 import Icon from '../common/Icon';
-import { Options } from '../common/ui';
 
 /** Question box shared by the overview and the chat page. The draft survives navigation. */
 export default function Composer({ placeholder, currentId = null, autoFocus = false }) {
   const { ui, setUi, settings, send, canChat, user, publicSettings, composerRef } = useApp();
+  // every question searches all sources (no scope picker)
   const ta = useRef(null);
   const value = ui.draft;
   const max = (publicSettings && publicSettings.chat && publicSettings.chat.maxQuestionLength) || 2000;
@@ -31,8 +30,6 @@ export default function Composer({ placeholder, currentId = null, autoFocus = fa
         <textarea id="comp-t" ref={ta} rows={1} maxLength={max} placeholder={locked ? 'Read-only access: asking questions is disabled' : placeholder} value={value} disabled={locked}
           onChange={e => setUi({ draft: e.target.value })} onKeyDown={onKey} />
         <div className="comp-row">
-          <label className="scope"><Icon name="layers" /><span className="sr">Source scope</span>
-            <select className="select" value={ui.scope} onChange={e => setUi({ scope: e.target.value })} aria-label="Source scope" disabled={locked}><Options list={SCOPES} /></select></label>
           <span className="grow" /><span className="count" id="comp-count">{value.length} / {max}</span>
           <button type="button" className="icon-btn" id="comp-clear" onClick={() => { setUi({ draft: '' }); ta.current && ta.current.focus(); }} aria-label="Clear input" hidden={!value}><Icon name="x" /></button>
           <button className="send" id="comp-send" disabled={locked || !value.trim()} aria-label="Send message"><Icon name="arrow-up" /></button>
