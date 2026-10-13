@@ -7,6 +7,6 @@ export default defineConfig({
     testTimeout: 60000,
     hookTimeout: 120000,
     fileParallelism: false, // integration suites share the real database
-    env: { NODE_ENV: 'test', WORKER_ENABLED: 'false', LOG_LEVEL: 'silent', MAIL_ENABLED: 'false' }
+    env: { NODE_ENV: 'test', WORKER_ENABLED: 'false', LOG_LEVEL: 'silent', MAIL_ENABLED: 'false', RETRIEVAL_ASSIST: 'false' }
   }
 });

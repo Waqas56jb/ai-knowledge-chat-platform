@@ -41,6 +41,8 @@ const schema = z.object({
   MAX_CONTEXT_CHUNKS: int(8, 1, 20),
   MAX_HISTORY_MESSAGES: int(6, 0, 20),
   RETRIEVAL_MIN_SIMILARITY: z.coerce.number().min(0).max(1).default(0.3),
+  // AI query rewriting + relevance reranking during retrieval (falls back to plain hybrid search on any failure)
+  RETRIEVAL_ASSIST: bool('true'),
   CHANNEL_MAX_VIDEOS: int(50, 1, 500),
 
   CHAT_RATE_LIMIT_WINDOW_MS: int(60000, 1000),

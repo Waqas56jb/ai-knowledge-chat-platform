@@ -31,3 +31,24 @@ function overlapRatio(a, b) {
   let inter = 0; for (const w of wa) if (wb.has(w)) inter++;
   return inter / Math.min(wa.size, wb.size);
 }
+
+/** RRF over any number of ranked lists (e.g. one vector + one keyword list per search query). Keeps the best similarity seen. */
+export function fuseLists(lists, { k = 60, limit = 24 } = {}) {
+  const map = new Map();
+  for (const { hits, kind } of lists) {
+    hits.forEach((h, i) => {
+      const cur = map.get(h.chunk_id) || { ...h, score: 0, similarity: null, keywordRank: null };
+      cur.score += 1 / (k + i + 1);
+      if (kind === 'vector') cur.similarity = Math.max(cur.similarity ?? -1, h.similarity);
+      else cur.keywordRank = Math.max(cur.keywordRank ?? 0, h.rank || 0);
+      map.set(h.chunk_id, cur);
+    });
+  }
+  const ranked = [...map.values()].sort((a, b) => b.score - a.score);
+  const out = [];
+  for (const h of ranked) {
+    if (!out.some(o => o.source_id === h.source_id && overlapRatio(o.content, h.content) > 0.8)) out.push(h);
+    if (out.length >= limit) break;
+  }
+  return out;
+}

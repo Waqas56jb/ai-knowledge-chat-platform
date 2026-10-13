@@ -35,14 +35,16 @@ tests/                 unit, integration, security (vitest + supertest), live/ e
 **Request flow:** the client sends `Authorization: Bearer <Supabase access token>`, which is verified with Supabase Auth. The matching profile row (role, status) is then loaded, and suspended or revoked accounts are rejected. Every response uses the envelope `{ success, data, meta }` or `{ success: false, error: { code, message, requestId } }`.
 
 **Answer flow (RAG):**
-1. A scope and policy check refuses prompt injection, requests for secrets, blocked topics, and out-of-domain questions before any model call.
-2. The question is embedded.
-3. Hybrid retrieval combines pgvector cosine search and Postgres full-text search, merged with reciprocal-rank fusion.
-4. Retrieval is limited to sources the user may access (`ai_knowledge_chat_accessible_source_ids`).
-5. An evidence-sufficiency threshold is applied.
-6. `gpt-4o-mini` answers only from the fenced evidence, as JSON.
-7. Citations are validated and renumbered. Unsupported answers are replaced by the fallback message.
+1. A scope and policy check refuses prompt injection, requests for secrets and blocked topics before any model call. Greetings, thanks and "what can you do" get a friendly reply with suggested questions, without a model call.
+2. **Query expansion:** with `RETRIEVAL_ASSIST=true`, the default, the AI rewrites the question into up to 3 expert-phrased English search queries. This makes short, casual or non-English questions find the right passages. Short follow-ups ("tell me more") also include the previous question.
+3. **Hybrid search** runs for the question and each rewrite: pgvector cosine search, plus Postgres full-text search with words ORed and source-title matches boosted. The result lists are merged with reciprocal-rank fusion. Search is limited to the sources the user may access (`ai_knowledge_chat_accessible_source_ids`).
+4. **AI rerank:** the AI scores the top 16 passages from 0 to 3 for relevance, and the relevant ones become the evidence. If nothing is relevant, the question is "not covered" and no answer is generated.
+5. The member's hidden business profile, if there is one, is added as fenced background.
+6. `gpt-4o-mini` answers only from the fenced evidence, as JSON, in the user's language. Non-English answers also come with an English version for checking.
+7. **Validation:** citations are checked and renumbered, and the answer must be supported by the evidence by word overlap. Follow-ups may also restate earlier grounded answers. Unsupported answers are replaced by the fallback message.
 8. The outcome is stored as `answered`, `insufficient_evidence`, `out_of_scope` or `error`.
+
+If an assist step fails, the system falls back to plain hybrid search, so answers never stop. Each question costs about 2 extra small gpt-4o-mini calls.
 
 **Ingestion flow:** admin adds a source → a job is queued → the worker extracts text (YouTube captions, PDF, DOCX, TXT/MD or pasted text) → normalises and chunks it → embeds it (`text-embedding-3-small`, 1536 dimensions) → indexes it. Jobs record progress, step, logs and attempts. Transient failures retry with backoff, and stale jobs are recovered.
 

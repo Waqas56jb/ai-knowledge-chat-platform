@@ -129,7 +129,9 @@ describe('RAG with access-controlled retrieval (mocked model)', () => {
     const sent = ai.calls[0];
     expect(sent[0].role).toBe('system');
     expect(sent[0].content).toMatch(/untrusted DATA/);
-    expect(sent[sent.length - 1].content.match(/<\/evidence>/g)).toHaveLength(1);
+    // the fence holds: an </evidence> inside a source cannot close a block early (one closing tag per block)
+    const last = sent[sent.length - 1].content;
+    expect(last.match(/<\/evidence>/g).length).toBe(last.match(/<evidence id=/g).length);
   });
 
   it('no relevant evidence produces the fallback without calling the model', async () => {
@@ -245,8 +247,14 @@ describe('client conversations are anonymised and restructured before indexing',
     const r = await api().post(`${P}/admin/knowledge/text`).set(auth(admin)).send({ title: `Pharmacy call (${RUN})`, sourceType: 'client_conversation', text: raw, category: 'Negotiation' });
     expect(r.status).toBe(201);
     expect(r.body.data.source.visibility).toBe('workspace');
-    await pool.query("update public.ai_knowledge_chat_jobs set status = 'processing', attempts = 1, locked_by = 'vitest', locked_at = now() where id = $1", [r.body.data.jobId]);
-    await runJob(await one('select * from public.ai_knowledge_chat_jobs where id = $1', [r.body.data.jobId]));
+    // a running worker (dev server or production, same database) may claim the queued job first: cancel it if it
+    // is still queued, wait for it otherwise, then run our own unclaimable job with the mocked model
+    await pool.query("update public.ai_knowledge_chat_jobs set status = 'cancelled' where id = $1 and status = 'queued'", [r.body.data.jobId]);
+    for (let i = 0; i < 60 && (await one('select status from public.ai_knowledge_chat_jobs where id = $1', [r.body.data.jobId])).status === 'processing'; i++) await new Promise(res => setTimeout(res, 1000));
+    await pool.query("update public.ai_knowledge_chat_sources set metadata = metadata - 'restructured', storage_path = null where id = $1", [r.body.data.source.id]);
+    await pool.query("insert into public.ai_knowledge_chat_source_contents (source_id, content, provider) values ($1, $2, 'text') on conflict (source_id) do update set content = excluded.content", [r.body.data.source.id, raw]);
+    ai.calls = [];
+    await runJob(await one("insert into public.ai_knowledge_chat_jobs (source_id, job_type, status, attempts, max_attempts, locked_by, locked_at) values ($1, 'text_normalization', 'processing', 1, 3, 'vitest', now()) returning *", [r.body.data.source.id]));
     const src = await one('select status, metadata from public.ai_knowledge_chat_sources where id = $1', [r.body.data.source.id]);
     expect(src.status).toBe('indexed');
     expect(src.metadata.restructured).toMatchObject({ entries: 1, parts: 1 });

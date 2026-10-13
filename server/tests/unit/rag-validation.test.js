@@ -133,3 +133,26 @@ describe('small talk', () => {
     for (const t of ['hi, what are the requirements for startup funding?', 'How do I find pharmacies?', 'thanks for the tips, how do I negotiate?', 'What are the benefits of an LLC?']) expect(smallTalk(t)).toBe(null);
   });
 });
+
+describe('answers in other languages', () => {
+  const ev = [{ chunk_id: 'c1', source_id: 's1', source_title: 'Pricing', source_type: 'business_knowledge', content: 'Present yourself professionally to pharmacies and build a reliable relationship with the buyer.' }];
+  it('a non-English answer is checked through its English version', () => {
+    const ok = validateAnswer(JSON.stringify({ outcome: 'answered', answer: 'Pharmacy ke saath professional tarike se pesh aayein [1].', answer_en: 'Present yourself professionally to pharmacies and build a reliable relationship [1].', citations: [1] }), ev);
+    expect(ok.outcome).toBe('answered');
+    expect(ok.answer).toMatch(/^Pharmacy ke saath/);
+  });
+  it('an invented English version is still rejected', () => {
+    const bad = validateAnswer(JSON.stringify({ outcome: 'answered', answer: 'Kuch bhi [1].', answer_en: 'Bitcoin mining rigs need cheap electricity and cooling [1].', citations: [1] }), ev);
+    expect(bad.outcome).toBe('insufficient_evidence');
+  });
+});
+
+describe('follow-up grounding', () => {
+  const ev = [{ chunk_id: 'c1', source_id: 's1', source_title: 'Ads', source_type: 'business_knowledge', content: 'Run ads on Craigslist and stand out with an eye-catching title.' }];
+  const prior = 'Anchor on the market rate, offer same-day payment and cover the shipping label to close the deal.';
+  const restated = JSON.stringify({ outcome: 'answered', answer: 'In short: anchor on the market rate, offer same-day payment and cover the shipping label [1].', citations: [1] });
+  it('a restatement of an earlier grounded answer in the same conversation is accepted', () => {
+    expect(validateAnswer(restated, ev).outcome).toBe('insufficient_evidence');
+    expect(validateAnswer(restated, ev, { priorAnswers: [prior] }).outcome).toBe('answered');
+  });
+});
