@@ -44,7 +44,7 @@ async function runChannelDiscovery(job, source, r) {
         `insert into ${T.sources} (title, source_type, source_url, channel_name, visibility, status, metadata, tags, owner_id, created_by)
          values ($1, 'youtube', $2, $3, $4, 'pending', $5, $6, $7, $7) returning id`,
         [v.title || `YouTube video ${v.videoId}`, `https://www.youtube.com/watch?v=${v.videoId}`, channelName || source.channel_name, source.visibility,
-          JSON.stringify({ kind: 'video', videoId: v.videoId, thumbnail: `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`, channelSourceId: source.id, publishedAt: v.publishedAt }), source.tags, source.owner_id])).rows[0];
+          JSON.stringify({ kind: 'video', videoId: v.videoId, thumbnail: `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`, channelSourceId: source.id, publishedAt: v.publishedAt, hideCitations: !!source.metadata?.hideCitations }), source.tags, source.owner_id])).rows[0];
       if (source.visibility === 'restricted') await db.query(`insert into ${T.sourceAccess} (source_id, user_id) select $1, user_id from ${T.sourceAccess} where source_id = $2`, [s.id, source.id]);
       await enqueueJob(db, { sourceId: s.id, jobType: 'transcript_extraction', requestedBy: job.requested_by });
     });

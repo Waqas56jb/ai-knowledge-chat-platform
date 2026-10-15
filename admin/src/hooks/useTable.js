@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
  *   const table = t.bind(data?.rows, data?.meta);
  *
  * `table` has the same shape DataTable / Pagination expect: pageRows, total, sort, toggleSort, page,
- * setPage, pageCount, pageSize, setPageSize, selected, toggleRow, toggleAll, allSelected, someSelected,
+ * setPage, pageCount, pageSize, setPageSize, selected, toggleRow, toggleAll, selectOnly(ids), allSelected, someSelected,
  * clearSelection. Selection is per page and is cleared when the page, size, sort or filters change.
  */
 export function useServerTable({ pageSize: initialSize = 10, sort: initialSort = null, resetKey } = {}) {
@@ -49,6 +49,8 @@ export function useServerTable({ pageSize: initialSize = 10, sort: initialSort =
       selected,
       toggleRow: id => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; }),
       toggleAll: () => setSelected(s => { const n = new Set(s); if (allSelected) pageIds.forEach(id => n.delete(id)); else pageIds.forEach(id => n.add(id)); return n; }),
+      /** Replace the selection with these ids (e.g. a quick-select helper). */
+      selectOnly: ids => setSelected(new Set(ids)),
       allSelected, someSelected, clearSelection
     };
   };

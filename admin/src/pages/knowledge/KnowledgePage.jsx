@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Library, CheckCircle2, Hourglass, AlertTriangle, Layers, CalendarPlus, Plus, BookOpen } from 'lucide-react';
+import { Library, CheckCircle2, Hourglass, AlertTriangle, Layers, CalendarPlus, Plus, BookOpen, ListChecks } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
 import Button from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
@@ -13,6 +13,8 @@ import { EmptyState, ErrorState } from '../../components/common/States';
 import { ExportButton, ProgressBar, SourceTypeIcon } from '../../components/common/Misc';
 import SourceRowMenu from '../../components/knowledge/SourceRowMenu';
 import EditSourceModal from '../../components/knowledge/EditSourceModal';
+import SourceBulkBar from '../../components/knowledge/SourceBulkBar';
+import SourceHiddenBadge from '../../components/knowledge/SourceHiddenBadge';
 import { useSourceActions } from '../../components/knowledge/sourceUtils';
 import { getKnowledgeSources, exportKnowledgeSources } from '../../services/knowledgeService';
 import { SOURCE_TYPES, SOURCE_STATUSES } from '../../constants/domain';
@@ -49,6 +51,10 @@ export default function KnowledgePage() {
   const statsLoading = loading && !stats;
   const owners = data?.meta?.owners;
   const actions = useSourceActions();
+  const selectedSources = useMemo(() => table.rows.filter(s => table.selected.has(s.id)), [table.rows, table.selected]);
+  // the client wants every source except YouTube videos hidden from users: one click selects the rest of this page
+  const nonYouTubeIds = table.rows.filter(s => s.type !== 'youtube').map(s => s.id);
+  const selectNonYouTube = () => table.selectOnly(nonYouTubeIds);
 
   const active = !!q || type !== 'all' || status !== 'all' || added !== 'all' || owner !== 'all';
   const clear = () => { setQ(''); setType('all'); setStatus('all'); setAdded('all'); setOwner('all'); };
@@ -64,7 +70,10 @@ export default function KnowledgePage() {
         <span className="flex min-w-0 items-center gap-3">
           <SourceTypeIcon type={s.type} />
           <span className="min-w-0">
-            <Link to={`/admin/knowledge/${s.id}`} onClick={e => e.stopPropagation()} className="block truncate font-medium text-ink hover:text-primary-text">{s.title}</Link>
+            <span className="flex min-w-0 items-center gap-2">
+              <Link to={`/admin/knowledge/${s.id}`} onClick={e => e.stopPropagation()} className="block min-w-0 truncate font-medium text-ink hover:text-primary-text">{s.title}</Link>
+              {s.hideCitations && <SourceHiddenBadge className="shrink-0" />}
+            </span>
             <span className="block truncate text-[12.5px] text-muted">{s.tags.length ? s.tags.map(t => `#${t}`).join(' ') : s.description || 'No description'}</span>
           </span>
         </span>
@@ -111,14 +120,19 @@ export default function KnowledgePage() {
 
       <Card>
         <FilterBar active={active} onClear={clear}
-          right={<FilterSelect label="Sort sources" value={sortValue} onChange={onSort} options={SORTS} />}>
+          right={<>
+            <Button size="sm" variant="ghost" icon={ListChecks} onClick={selectNonYouTube} disabled={!nonYouTubeIds.length}
+              title="Select every source on this page that is not a YouTube video, e.g. to hide them from users">Select all non-YouTube on this page</Button>
+            <FilterSelect label="Sort sources" value={sortValue} onChange={onSort} options={SORTS} />
+          </>}>
           <SearchInput value={q} onChange={setQ} placeholder="Search title or tags" label="Search sources" />
           <FilterSelect label="Source type" value={type} onChange={setType} options={[['all', 'All types'], ...Object.entries(SOURCE_TYPES).map(([k, v]) => [k, v.label])]} />
           <FilterSelect label="Status" value={status} onChange={setStatus} options={[['all', 'All statuses'], ...SOURCE_STATUSES.map(s => [s, capitalize(s)])]} />
           <FilterSelect label="Added date" value={added} onChange={setAdded} options={ADDED} />
           <FilterSelect label="Owner" value={owner} onChange={setOwner} options={[['all', 'All owners'], ...(owners || []).map(o => [o.id, o.name])]} />
         </FilterBar>
-        <DataTable columns={columns} rows={table.pageRows} table={table} loading={loading} caption="Knowledge sources"
+        <SourceBulkBar sources={selectedSources} onClear={table.clearSelection} />
+        <DataTable columns={columns} rows={table.pageRows} table={table} loading={loading} selectable caption="Knowledge sources"
           onRowClick={s => navigate(`/admin/knowledge/${s.id}`)}
           rowActions={s => <SourceRowMenu source={s} activeJob={s.activeJob} actions={actions} onEdit={setEditing} />}
           empty={active

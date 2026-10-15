@@ -8,6 +8,7 @@ import { Tabs, TabPanel } from '../../components/common/Tabs';
 import { EmptyState, ErrorState, Skeleton } from '../../components/common/States';
 import { ActivityTimeline, ProgressBar, SourceTypeIcon } from '../../components/common/Misc';
 import EditSourceModal from '../../components/knowledge/EditSourceModal';
+import SourceHiddenBadge from '../../components/knowledge/SourceHiddenBadge';
 import SourceOverview from '../../components/knowledge/detail/SourceOverview';
 import SourceContent from '../../components/knowledge/detail/SourceContent';
 import SourceProcessing from '../../components/knowledge/detail/SourceProcessing';
@@ -72,6 +73,7 @@ export default function SourceDetailPage() {
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="break-words text-[24px] font-semibold leading-tight sm:text-[28px]">{s.title}</h1>
               <StatusBadge status={s.status} />
+              {s.hideCitations && <SourceHiddenBadge />}
             </div>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] text-muted">
               <span>{s.typeLabel}</span><span aria-hidden="true">·</span>

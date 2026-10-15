@@ -272,6 +272,24 @@ describe('client conversations are anonymised and restructured before indexing',
   });
 });
 
+describe('hide source citations', () => {
+  it('bulk-hidden sources still answer but are not shown as citations; show restores them', async () => {
+    expect((await api().post(`${P}/admin/knowledge/bulk`).set(auth(member)).send({ ids: [workspaceSrc.id], action: 'hide_citations' })).status).toBe(403);
+    expect((await api().post(`${P}/admin/knowledge/bulk`).set(auth(admin)).send({ ids: [], action: 'hide_citations' })).status).toBe(422);
+    const hide = await api().post(`${P}/admin/knowledge/bulk`).set(auth(admin)).send({ ids: [workspaceSrc.id], action: 'hide_citations' });
+    expect(hide.body.data.updated).toBe(1);
+    expect((await api().get(`${P}/admin/knowledge/${workspaceSrc.id}`).set(auth(admin))).body.data.hideCitations).toBe(true);
+    ai.chat = JSON.stringify({ outcome: 'answered', answer: 'Discounts above ten percent require a longer contract or upfront payment [1].', citations: [1] });
+    const r = await api().post(`${P}/chat`).set(auth(member)).send({ message: `What is the discount policy ${RUN}?` });
+    expect(r.body.data.outcome).toBe('answered');
+    expect(r.body.data.citations.some(c => c.sourceId === workspaceSrc.id)).toBe(false);
+    expect(r.body.data.answer).toMatch(/longer contract or upfront payment/);
+    const show = await api().patch(`${P}/admin/knowledge/${workspaceSrc.id}`).set(auth(admin)).send({ hideCitations: false });
+    expect(show.body.data.hideCitations).toBe(false);
+    ai.chat = null;
+  });
+});
+
 describe('hidden business profiles', () => {
   const PROFILE = { businessName: `Sun Supplies ${RUN}`, businessType: 'test strip reseller', userRole: 'owner', city: 'Tampa', state: 'Florida', country: 'United States', businessStage: 'growing', products: ['Test Strips'], clientTypes: ['pharmacies'], monthlyVolume: null, teamSize: '3 people', summary: 'Runs a small reseller in Florida.' };
   it("is built from the member's own messages and used (fenced) in later answers", async () => {

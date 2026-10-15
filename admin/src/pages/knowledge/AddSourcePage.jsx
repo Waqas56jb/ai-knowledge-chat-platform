@@ -168,13 +168,13 @@ function AddSourceWizard({ settings }) {
               <h2 ref={headingRef} tabIndex={-1} className="mt-1 font-display text-[19px] font-semibold text-ink outline-none">{COPY[stepId][0]}</h2>
               <p className="mb-5 mt-1 text-[13.5px] text-muted">{COPY[stepId][1]}</p>
 
-              {stepId === 'type' && <StepType value={form.kind} onChange={kind => update({ kind })} supportedTypes={settings.supportedTypes} error={errors.kind} />}
+              {stepId === 'type' && <StepType value={form.kind} onChange={kind => update(f => (f.kind === kind ? {} : { kind, showCitations: null }))} supportedTypes={settings.supportedTypes} error={errors.kind} />}
               {stepId === 'details' && <StepDetails form={form} update={update} errors={errors} settings={settings} />}
               {stepId === 'visibility' && (
                 <VisibilityPicker value={form.visibility} onChange={visibility => update({ visibility })} allowedUserIds={form.allowedUserIds}
                   onUsersChange={allowedUserIds => update({ allowedUserIds })} usersError={errors.allowedUserIds} />
               )}
-              {stepId === 'review' && <StepReview form={form} onJump={goTo} uploads={uploads} />}
+              {stepId === 'review' && <StepReview form={form} onJump={goTo} uploads={uploads} update={update} disabled={saving} />}
               {stepId === 'review' && duplicate && (
                 <div role="alert" className="mt-5 flex gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-[13px]">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />

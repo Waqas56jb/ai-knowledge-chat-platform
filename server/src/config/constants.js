@@ -20,7 +20,7 @@ export const T = Object.freeze({
   insights: 'public.ai_knowledge_chat_user_insights'
 });
 /** Number of SQL files in supabase/migrations the code depends on. */
-export const REQUIRED_MIGRATIONS = 7;
+export const REQUIRED_MIGRATIONS = 8;
 export const GAP_STATUSES = ['open', 'planned', 'covered', 'dismissed'];
 export const FN = Object.freeze({
   accessibleSources: 'public.ai_knowledge_chat_accessible_source_ids',

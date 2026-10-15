@@ -6,7 +6,7 @@ import { apiGet, apiList, apiPatch, apiPost, apiDelete, downloadCsv, listAll } f
 import { mapAudit } from './auditService';
 
 /** AdminUser → UI shape (`name` is what the components display). */
-const EMPTY_BUSINESS = { name: null, type: null, role: null, city: null, state: null, country: null, stage: null, products: [], clientTypes: [], updatedAt: null };
+const EMPTY_BUSINESS = { name: null, type: null, role: null, city: null, state: null, country: null, stage: null, products: [], clientTypes: [], revenue: null, metaAdSpend: null, googleAdSpend: null, updatedAt: null };
 
 export const mapUser = u => u && ({
   ...u,
@@ -68,7 +68,7 @@ export const mapBusinessProfile = p => p && ({ ...p, products: p.products || [],
 
 const profilePath = id => `/admin/users/${encodeURIComponent(id)}/business-profile`;
 export const getBusinessProfile = async id => mapBusinessProfile(await apiGet(profilePath(id)));
-/** changes: any of { businessName, businessType, userRole, city, state, country, businessStage, products, clientTypes, monthlyVolume, teamSize, summary }. Edited fields become manual (the AI never overwrites them). */
+/** changes: any of { businessName, businessType, userRole, city, state, country, businessStage, products, clientTypes, monthlyVolume, teamSize, monthlyRevenue, metaAdSpend, googleAdSpend, summary } (free text, max 120 chars except name/summary). Edited fields become manual (the AI never overwrites them). */
 export const updateBusinessProfile = async (id, changes) => mapBusinessProfile(await apiPatch(profilePath(id), changes));
 /** Rebuild from the user's conversations now (uses the AI). */
 export const refreshBusinessProfile = async id => mapBusinessProfile(await apiPost(`${profilePath(id)}/refresh`));

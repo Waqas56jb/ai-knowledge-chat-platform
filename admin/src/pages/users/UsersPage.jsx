@@ -52,6 +52,14 @@ function countOptions(list, current, allLabel) {
 
 const joinParts = parts => parts.filter(Boolean).join(', ');
 
+/** Revenue and ad spend from the hidden business profile: free text like "$40k/month" or "$150/day". Wide screens only. */
+const moneyCell = v => (v ? <span className="block truncate" title={v}>{v}</span> : <span className="text-faint">—</span>);
+const MONEY_COLUMNS = [['revenue', 'Revenue'], ['metaAdSpend', 'Meta spend'], ['googleAdSpend', 'Google spend']].map(([k, header]) => ({
+  key: `business.${k}`, header, mobile: 'hidden',
+  className: 'hidden max-w-[140px] whitespace-nowrap text-muted 2xl:table-cell', headerClassName: 'hidden whitespace-nowrap 2xl:table-cell',
+  render: u => moneyCell(u.business[k])
+}));
+
 export default function UsersPage() {
   useDocumentTitle('Users');
   const navigate = useNavigate();
@@ -117,6 +125,7 @@ export default function UsersPage() {
       key: 'country', header: 'Location', sortable: true, className: 'hidden max-w-[200px] text-muted xl:table-cell', headerClassName: 'hidden xl:table-cell',
       render: u => { const loc = joinParts([u.business.city, u.business.state, u.business.country]); return loc ? <span className="block truncate" title={loc}>{loc}</span> : <span className="text-faint">—</span>; }
     },
+    ...MONEY_COLUMNS,
     { key: 'role', header: 'Role', sortable: true, mobile: 'secondary', render: u => <RoleBadge role={u.role} /> },
     { key: 'status', header: 'Status', sortable: true, mobile: 'secondary', render: u => <StatusBadge status={u.status} /> },
     { key: 'createdAt', header: 'Created', sortable: true, className: 'hidden whitespace-nowrap text-muted 2xl:table-cell', headerClassName: 'hidden 2xl:table-cell', render: u => <time dateTime={u.createdAt} title={formatDateTime(u.createdAt)}>{formatDate(u.createdAt)}</time> },

@@ -129,7 +129,8 @@ export function createAnswerStream(evidence, { onText = () => {}, onCitation = (
   const valid = n => Number.isInteger(n) && n >= 1 && n <= evidence.length;
 
   const renumber = s => s.replace(CITE, (_, list) => {
-    const ns = list.split(',').map(x => parseInt(x, 10)).filter(valid);
+    // sources an admin hid still inform the answer but are never shown as citations
+    const ns = list.split(',').map(x => parseInt(x, 10)).filter(valid).filter(n => !evidence[n - 1].metadata?.hideCitations);
     ns.forEach(n => { if (!order.includes(n)) { order.push(n); onCitation(toCitation(evidence[n - 1], order.length)); } });
     return ns.length ? ns.map(n => `[${order.indexOf(n) + 1}]`).join('') : '';
   });
@@ -285,7 +286,22 @@ export async function sendMessage(user, payload, hooks = {}) {
     } catch { /* keep the first result */ }
   }
   if (v.outcome !== 'answered') return save(settings.knowledge.fallbackMessage, 'insufficient_evidence', [], usage);
-  return save(v.answer, 'answered', v.citations, { ...usage, followups: v.followups || [] });
+  const shown = hideHiddenCitations(v.answer, v.citations, [...ret.evidence, ...strong]);
+  return save(shown.answer, 'answered', shown.citations, { ...usage, followups: v.followups || [] });
+}
+
+/**
+ * Admins can hide a source's citations (e.g. everything except YouTube videos): its content still answers the
+ * question, but its markers and source chips are removed and the remaining citations are renumbered 1..k.
+ */
+export function hideHiddenCitations(answer, citations, evidence) {
+  const hidden = new Set(evidence.filter(e => e.metadata?.hideCitations).map(e => e.source_id));
+  if (!hidden.size || !citations.some(c => hidden.has(c.sourceId))) return { answer, citations };
+  const map = new Map(); const kept = [];
+  for (const c of citations) if (!hidden.has(c.sourceId)) { kept.push({ ...c, n: kept.length + 1 }); map.set(c.n, kept.length); }
+  const text = answer.replace(/\[(\d+)\]/g, (_, n) => (map.has(Number(n)) ? `[${map.get(Number(n))}]` : ''))
+    .replace(/[ \t]+([.,;:!?])/g, '$1').replace(/[ \t]{2,}/g, ' ').trim();
+  return { answer: text, citations: kept };
 }
 
 const SMALL_TALK = [

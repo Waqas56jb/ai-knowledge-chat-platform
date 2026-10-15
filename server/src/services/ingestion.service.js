@@ -52,7 +52,7 @@ export async function createYoutubeSource(payload, actor, req) {
         title: payload.title || feed.channelName || 'YouTube channel', description: payload.description, sourceType: 'youtube',
         sourceUrl: `https://www.youtube.com/channel/${channelId}`, channelName: feed.channelName || null,
         visibility: payload.visibility, allowedUserIds: payload.allowedUserIds, tags: payload.tags,
-        metadata: { kind: 'channel', channelId, maxVideos: payload.maxVideos || env.CHANNEL_MAX_VIDEOS }
+        metadata: { kind: 'channel', channelId, maxVideos: payload.maxVideos || env.CHANNEL_MAX_VIDEOS, hideCitations: payload.hideCitations ?? false }
       }, actor);
       const job = await enqueueJob(db, { sourceId: s.id, jobType: 'channel_discovery', requestedBy: actor.id });
       await recordAudit({ actor, action: 'source.added', entityType: 'source', entityId: s.id, entityLabel: s.title, details: { type: 'youtube_channel', channelId }, req }, db);
@@ -70,7 +70,7 @@ export async function createYoutubeSource(payload, actor, req) {
     const s = await insertSource(db, {
       title: payload.title || meta.title || `YouTube video ${parsed.videoId}`, description: payload.description, sourceType: 'youtube',
       sourceUrl: parsed.url, channelName: meta.channelName, visibility: payload.visibility, allowedUserIds: payload.allowedUserIds, tags: payload.tags,
-      metadata: { kind: 'video', videoId: parsed.videoId, thumbnail: meta.thumbnail, manualTranscript: !!manual }
+      metadata: { kind: 'video', videoId: parsed.videoId, thumbnail: meta.thumbnail, manualTranscript: !!manual, hideCitations: payload.hideCitations ?? false }
     }, actor);
     if (manual) {
       await db.query(`insert into ${T.sourceContents} (source_id, content, segments, provider) values ($1, $2, $3, 'manual')`,
@@ -99,7 +99,9 @@ export async function createDocumentSource(file, fields, actor, req) {
     title, description: fields.description, sourceType: conversation ? 'client_conversation' : type,
     // conversations are anonymised and restructured before indexing
     visibility: fields.visibility, allowedUserIds: fields.allowedUserIds, tags: fields.tags,
-    contentHash: hash, metadata: { kind: 'document', category: conversation ? fields.category || null : undefined, file: { name: file.originalname.slice(0, 200), size: file.size, type } }
+    contentHash: hash, metadata: { kind: 'document', category: conversation ? fields.category || null : undefined, file: { name: file.originalname.slice(0, 200), size: file.size, type },
+      // only YouTube shows its sources by default
+      hideCitations: fields.hideCitations ? fields.hideCitations === 'true' : true }
   }, actor));
   let path = null;
   try {
@@ -129,7 +131,7 @@ export async function createTextSource(payload, actor, req) {
   return tx(async db => {
     const s = await insertSource(db, {
       title: payload.title, description: payload.description, sourceType: payload.sourceType, visibility, allowedUserIds: payload.allowedUserIds,
-      tags: payload.tags, contentHash: hash, metadata: { kind: 'text', category: payload.category || null }
+      tags: payload.tags, contentHash: hash, metadata: { kind: 'text', category: payload.category || null, hideCitations: payload.hideCitations ?? true }
     }, actor);
     await db.query(`insert into ${T.sourceContents} (source_id, content, provider) values ($1, $2, 'text')`, [s.id, text]);
     const job = await enqueueJob(db, { sourceId: s.id, jobType: 'text_normalization', requestedBy: actor.id });

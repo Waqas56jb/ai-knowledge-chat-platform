@@ -14,6 +14,7 @@ r.get('/', validate({ query: s.adminSourceQuery }), c.adminList);
 r.post('/youtube', ingestLimiter, validate({ body: s.youtubeSourceBody }), c.addYoutube);
 r.post('/text', ingestLimiter, validate({ body: s.textSourceBody }), c.addText);
 r.post('/documents', ingestLimiter, uploadDocument, c.addDocument);
+r.post('/bulk', validate({ body: s.bulkSourcesBody }), c.adminBulk);
 r.get('/:sourceId', validate({ params: s.sourceIdParam }), c.adminGet);
 r.patch('/:sourceId', validate({ params: s.sourceIdParam, body: s.updateSourceBody }), c.adminUpdate);
 r.delete('/:sourceId', validate({ params: s.sourceIdParam }), c.adminDelete);

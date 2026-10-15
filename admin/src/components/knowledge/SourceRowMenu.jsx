@@ -1,4 +1,4 @@
-import { MoreHorizontal, Eye, Pencil, Play, RotateCcw, Ban, Power, Trash2, Download, RefreshCw } from 'lucide-react';
+import { MoreHorizontal, Eye, EyeOff, Pencil, Play, RotateCcw, Ban, Power, Trash2, Download, RefreshCw } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
 import { sourceCapabilities } from './sourceUtils';
 
@@ -8,6 +8,9 @@ export default function SourceRowMenu({ source, activeJob, actions, onEdit }) {
   const items = [
     { label: 'View details', icon: Eye, to: `/admin/knowledge/${source.id}` },
     { label: 'Edit details', icon: Pencil, onClick: () => onEdit(source) },
+    source.hideCitations
+      ? { label: 'Show source to users', icon: Eye, onClick: () => actions.setCitationsHidden(source, false) }
+      : { label: 'Hide source from users', icon: EyeOff, onClick: () => actions.setCitationsHidden(source, true) },
     (can.start || can.retry || can.reindex) && { divider: true },
     can.start && { label: 'Start processing', icon: Play, onClick: () => actions.start(source) },
     can.reindex && { label: 'Re-index', icon: RefreshCw, onClick: () => actions.start(source, true) },

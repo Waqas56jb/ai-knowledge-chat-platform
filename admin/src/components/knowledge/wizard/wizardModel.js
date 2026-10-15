@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Youtube, FileText, AlignLeft, MessagesSquare } from 'lucide-react';
 import { requiredText } from '../../../utils/validation';
-import { FILE_TYPES, fileExt, parseYouTubeUrl } from '../sourceUtils';
+import { FILE_TYPES, defaultShowCitations, fileExt, parseYouTubeUrl } from '../sourceUtils';
 
 export const STEPS = [
   { id: 'type', label: 'Source type' },
@@ -54,7 +54,9 @@ export const initialForm = defaultVisibility => ({
   file: null,
   text: '', textType: 'business_knowledge',
   conversationMode: 'paste', conversationText: '', conversationFiles: [], category: '',
-  visibility: defaultVisibility === 'all' ? 'workspace' : defaultVisibility || 'workspace', allowedUserIds: []
+  visibility: defaultVisibility === 'all' ? 'workspace' : defaultVisibility || 'workspace', allowedUserIds: [],
+  // "Show source to users": null = the default for the chosen type (on for YouTube, off for everything else)
+  showCitations: null
 });
 
 export const isDirty = f => !!(f.kind || f.title || f.description || f.tags.length || f.youtubeUrl || f.transcript || f.file || f.text || f.conversationText || f.conversationFiles.length);
@@ -120,6 +122,9 @@ export function resolveType(f) {
   return null;
 }
 
+/** Whether the new source will be shown to users as a cited source. */
+export const showCitationsFor = f => (typeof f.showCitations === 'boolean' ? f.showCitations : defaultShowCitations(resolveType(f)));
+
 /** Final tags (the conversation context is saved as a tag). */
 export function finalTags(f) {
   const tags = [...f.tags];
@@ -134,7 +139,8 @@ export function finalTags(f) {
 export function toPayload(f) {
   const base = {
     title: f.title.trim(), description: f.description.trim(), tags: finalTags(f),
-    visibility: f.visibility, allowedUserIds: f.visibility === 'restricted' ? f.allowedUserIds : []
+    visibility: f.visibility, allowedUserIds: f.visibility === 'restricted' ? f.allowedUserIds : [],
+    hideCitations: !showCitationsFor(f)
   };
   if (f.kind === 'youtube') {
     const channel = parseYouTubeUrl(f.youtubeUrl)?.kind === 'channel';

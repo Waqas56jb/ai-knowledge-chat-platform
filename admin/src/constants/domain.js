@@ -18,8 +18,12 @@ export const BUSINESS_STAGE_LABELS = { starting: 'Starting', growing: 'Growing',
 export const BUSINESS_PROFILE_FIELDS = [
   ['businessName', 'Business name'], ['businessType', 'Business type'], ['userRole', 'Their role'],
   ['city', 'City'], ['state', 'State / region'], ['country', 'Country'], ['businessStage', 'Stage'],
-  ['products', 'Products'], ['clientTypes', 'Client types'], ['monthlyVolume', 'Monthly volume'], ['teamSize', 'Team size'], ['summary', 'Summary']
+  ['products', 'Products'], ['clientTypes', 'Client types'], ['monthlyVolume', 'Monthly volume (boxes)'], ['teamSize', 'Team size'],
+  ['monthlyRevenue', 'Monthly revenue'], ['metaAdSpend', 'Meta / Facebook ad spend'], ['googleAdSpend', 'Google ad spend'],
+  ['summary', 'Summary']
 ];
+/** Shown in their own "Revenue & advertising" group on the business profile tab. */
+export const BUSINESS_REVENUE_FIELDS = ['monthlyRevenue', 'metaAdSpend', 'googleAdSpend'];
 export const businessFieldLabel = k => (BUSINESS_PROFILE_FIELDS.find(([f]) => f === k) || [k, k])[1];
 
 /* invitations */

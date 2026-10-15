@@ -28,7 +28,9 @@ const CSV = [
   { label: 'Their role', value: u => u.business.role }, { label: 'City', value: u => u.business.city },
   { label: 'State', value: u => u.business.state }, { label: 'Country', value: u => u.business.country },
   { label: 'Stage', value: u => u.business.stage }, { label: 'Products', value: u => u.business.products.join('; ') },
-  { label: 'Clients', value: u => u.business.clientTypes.join('; ') }
+  { label: 'Clients', value: u => u.business.clientTypes.join('; ') },
+  { label: 'Monthly revenue', value: u => u.business.revenue }, { label: 'Meta ad spend', value: u => u.business.metaAdSpend },
+  { label: 'Google ad spend', value: u => u.business.googleAdSpend }
 ];
 export const list = asyncHandler(async (req, res) => {
   const q = req.validQuery;

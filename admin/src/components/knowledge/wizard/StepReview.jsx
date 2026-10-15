@@ -1,17 +1,18 @@
 import { Pencil } from 'lucide-react';
 import { DescriptionList } from '../../common/Card';
+import { Checkbox } from '../../forms/FormField';
 import { SourceTypeIcon } from '../../common/Misc';
 import { SOURCE_TYPES, VISIBILITY } from '../../../constants/domain';
 import { getAllUsers } from '../../../services/userService';
 import { useQuery } from '../../../hooks/useQuery';
 import { formatBytes, formatNumber } from '../../../utils/format';
-import { KINDS, conversationFileTitle, finalTags, resolveType, wordCount } from './wizardModel';
+import { KINDS, conversationFileTitle, finalTags, resolveType, showCitationsFor, wordCount } from './wizardModel';
 import { ConversationUploadList } from './ConversationFiles';
 import { parseYouTubeUrl } from '../sourceUtils';
 
 /** Step 4: read-only summary with "edit" shortcuts back to earlier steps. */
 /** `uploads` = per-file status while conversation files are being uploaded (see ConversationUploadList). */
-export default function StepReview({ form, onJump, uploads }) {
+export default function StepReview({ form, onJump, uploads, update, disabled }) {
   const type = resolveType(form);
   const { data: users } = useQuery(() => (form.visibility === 'restricted' && form.allowedUserIds.length ? getAllUsers() : Promise.resolve([])), [form.visibility]);
   const names = form.allowedUserIds.map(id => (users || []).find(u => u.id === id)?.name || id);
@@ -59,6 +60,13 @@ export default function StepReview({ form, onJump, uploads }) {
           form.visibility === 'restricted' && ['Allowed users', names.join(', ')]
         ]} />
       </Section>
+
+      <section className="rounded-2xl border border-line p-4">
+        <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-faint">Citations</h3>
+        <Checkbox checked={showCitationsFor(form)} disabled={disabled} onChange={e => update({ showCitations: e.target.checked })}
+          label={convFiles && form.conversationFiles.length > 1 ? 'Show these sources to users' : 'Show source to users'}
+          description="When off, the AI still uses this content to answer, but users don't see it as a cited source (no source chip, link or excerpt). On by default for YouTube videos only; you can change it later on the source page." />
+      </section>
 
     </div>
   );

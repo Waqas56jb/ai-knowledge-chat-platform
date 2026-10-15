@@ -34,6 +34,7 @@ export const adminList = asyncHandler(async (req, res) => {
 export const adminGet = asyncHandler(async (req, res) => ok(res, await src.adminGetSource(req.params.sourceId)));
 export const adminUpdate = asyncHandler(async (req, res) => ok(res, await src.updateSource(req.params.sourceId, req.body, req.user, req)));
 export const adminDelete = asyncHandler(async (req, res) => { await src.deleteSource(req.params.sourceId, req.user, req); ok(res, { deleted: true }); });
+export const adminBulk = asyncHandler(async (req, res) => ok(res, await src.bulkSetCitations(req.body.ids, req.body.action === 'hide_citations', req.user, req)));
 export const adminDisable = asyncHandler(async (req, res) => ok(res, await src.setSourceEnabled(req.params.sourceId, false, req.user, req)));
 export const adminEnable = asyncHandler(async (req, res) => ok(res, await src.setSourceEnabled(req.params.sourceId, true, req.user, req)));
 export const adminProcess = asyncHandler(async (req, res) => ok(res, await ingest.queueProcessing(req.params.sourceId, req.user, req), undefined, 202));

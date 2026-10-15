@@ -18,14 +18,15 @@ import { chatJson } from './openai.service.js';
 import { recordAudit } from './audit.service.js';
 
 export const STAGES = ['starting', 'growing', 'established'];
-const TEXT_FIELDS = ['businessName', 'businessType', 'userRole', 'city', 'state', 'country', 'monthlyVolume', 'teamSize', 'summary'];
+const TEXT_FIELDS = ['businessName', 'businessType', 'userRole', 'city', 'state', 'country', 'monthlyVolume', 'monthlyRevenue', 'metaAdSpend', 'googleAdSpend', 'teamSize', 'summary'];
 const LIST_FIELDS = ['products', 'clientTypes'];
 export const PROFILE_FIELDS = [...TEXT_FIELDS, 'businessStage', ...LIST_FIELDS];
 const COL = {
   businessName: 'business_name', businessType: 'business_type', userRole: 'user_role', city: 'city', state: 'state', country: 'country',
-  businessStage: 'business_stage', products: 'products', clientTypes: 'client_types', monthlyVolume: 'monthly_volume', teamSize: 'team_size', summary: 'summary'
+  businessStage: 'business_stage', products: 'products', clientTypes: 'client_types', monthlyVolume: 'monthly_volume', monthlyRevenue: 'monthly_revenue', metaAdSpend: 'meta_ad_spend', googleAdSpend: 'google_ad_spend',
+  teamSize: 'team_size', summary: 'summary'
 };
-const MAX = { businessName: 200, businessType: 120, userRole: 120, city: 120, state: 120, country: 120, monthlyVolume: 120, teamSize: 120, summary: 2000 };
+const MAX = { businessName: 200, businessType: 120, userRole: 120, city: 120, state: 120, country: 120, monthlyVolume: 120, monthlyRevenue: 120, metaAdSpend: 120, googleAdSpend: 120, teamSize: 120, summary: 2000 };
 
 const DEBOUNCE_MINUTES = 2;          // wait until a conversation has been quiet this long
 const MAX_MESSAGES = 80;             // newest user messages considered per update
@@ -42,7 +43,8 @@ const cleanList = v => [...new Set((Array.isArray(v) ? v : []).map(x => clean(x,
 export const insightOut = r => r && ({
   businessName: r.business_name, businessType: r.business_type, userRole: r.user_role,
   city: r.city, state: r.state, country: r.country, businessStage: r.business_stage,
-  products: r.products || [], clientTypes: r.client_types || [], monthlyVolume: r.monthly_volume, teamSize: r.team_size,
+  products: r.products || [], clientTypes: r.client_types || [], monthlyVolume: r.monthly_volume,
+  monthlyRevenue: r.monthly_revenue ?? null, metaAdSpend: r.meta_ad_spend ?? null, googleAdSpend: r.google_ad_spend ?? null, teamSize: r.team_size,
   summary: r.summary, manualFields: r.manual_fields || [], messagesAnalyzed: r.messages_analyzed || 0,
   lastMessageAt: r.last_message_at, generatedAt: r.generated_at, updatedAt: r.updated_at, updatedById: r.updated_by || null
 });
@@ -59,14 +61,18 @@ Fields:
 - businessStage: "starting" (planning or just started), "growing" (operating and scaling) or "established" (mature, large volume), or null
 - products: products they deal in, short lowercase names (e.g. "test strips", "insulin pens")
 - clientTypes: who they buy from or sell to, short lowercase (e.g. "patients", "pharmacies", "wholesalers")
-- monthlyVolume: revenue or volume only if they stated it (e.g. "$20k/month", "500 boxes/month")
+- monthlyVolume: product volume only if they stated it (e.g. "500 boxes/month")
+- monthlyRevenue: total revenue only if they stated it, with its period (e.g. "$40k/month", "$2k/day")
+- metaAdSpend: Meta/Facebook advertising spend only if stated, with its period as said (e.g. "$150/day", "$3k/month")
+- googleAdSpend: Google advertising spend only if stated, with its period as said
 - teamSize: only if stated (e.g. "solo", "3 employees")
 - summary: 1-3 neutral sentences describing the member and their business for internal use (no sensitive personal data such as health conditions, phone numbers, addresses or ID numbers)
-Respond with a JSON object with exactly these keys: {"businessName", "businessType", "userRole", "city", "state", "country", "businessStage", "products", "clientTypes", "monthlyVolume", "teamSize", "summary"}.`;
+Respond with a JSON object with exactly these keys: {"businessName", "businessType", "userRole", "city", "state", "country", "businessStage", "products", "clientTypes", "monthlyVolume", "monthlyRevenue", "metaAdSpend", "googleAdSpend", "teamSize", "summary"}.`;
 
 const extracted = z.object({
   businessName: z.any(), businessType: z.any(), userRole: z.any(), city: z.any(), state: z.any(), country: z.any(),
-  businessStage: z.any(), products: z.any(), clientTypes: z.any(), monthlyVolume: z.any(), teamSize: z.any(), summary: z.any()
+  businessStage: z.any(), products: z.any(), clientTypes: z.any(), monthlyVolume: z.any(), monthlyRevenue: z.any(), metaAdSpend: z.any(), googleAdSpend: z.any(),
+  teamSize: z.any(), summary: z.any()
 }).partial();
 
 /** Model output → sanitised field values. Exported for tests. */
@@ -176,7 +182,9 @@ export async function insightContext(userId) {
     p.businessName && `Business: ${p.businessName}`, p.businessType && `Type: ${p.businessType}`, p.userRole && `Role: ${p.userRole}`,
     [p.city, p.state, p.country].filter(Boolean).length && `Location: ${[p.city, p.state, p.country].filter(Boolean).join(', ')}`,
     p.businessStage && `Stage: ${p.businessStage}`, p.products.length && `Products: ${p.products.join(', ')}`,
-    p.clientTypes.length && `Clients: ${p.clientTypes.join(', ')}`, p.monthlyVolume && `Volume: ${p.monthlyVolume}`, p.teamSize && `Team: ${p.teamSize}`,
+    p.clientTypes.length && `Clients: ${p.clientTypes.join(', ')}`, p.monthlyVolume && `Volume: ${p.monthlyVolume}`,
+    p.monthlyRevenue && `Revenue: ${p.monthlyRevenue}`, p.metaAdSpend && `Meta ad spend: ${p.metaAdSpend}`, p.googleAdSpend && `Google ad spend: ${p.googleAdSpend}`,
+    p.teamSize && `Team: ${p.teamSize}`,
     p.summary && `Summary: ${p.summary}`
   ].filter(Boolean);
   return parts.length ? parts.join('\n').replace(/<\/?member_profile[^>]*>/gi, '') : null;

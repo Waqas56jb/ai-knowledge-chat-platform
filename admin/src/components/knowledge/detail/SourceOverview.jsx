@@ -1,15 +1,16 @@
 import { Link } from 'react-router-dom';
-import { ExternalLink, ImageOff, History, ListVideo, ShieldCheck } from 'lucide-react';
+import { ExternalLink, ImageOff, History, ListVideo, ShieldCheck, Quote } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardHeader, DescriptionList } from '../../common/Card';
 import StatusBadge from '../../common/StatusBadge';
 import { ActivityTimeline, CopyButton } from '../../common/Misc';
 import Avatar from '../../common/Avatar';
 import Button from '../../common/Button';
+import { Switch } from '../../forms/FormField';
 import { VISIBILITY, sourceTypeLabel } from '../../../constants/domain';
 import { actionLabel } from '../../../services/auditService';
 import { formatBytes, formatDateTime, formatNumber, relativeTime } from '../../../utils/format';
-import { restructuredLabel } from '../sourceUtils';
+import { restructuredLabel, useSourceActions } from '../sourceUtils';
 
 /** Overview tab: metadata, file / YouTube info, visibility and recent activity. */
 export default function SourceOverview({ source: s }) {
@@ -54,6 +55,7 @@ export default function SourceOverview({ source: s }) {
       </div>
 
       <div className="space-y-6">
+        <CitationCard source={s} />
         <Card>
           <CardHeader title="Visibility" />
           <div className="card-pad">
@@ -77,6 +79,22 @@ export default function SourceOverview({ source: s }) {
         </Card>
       </div>
     </div>
+  );
+}
+
+/** "Show source to users": a hidden source still answers questions but is never cited to users. */
+function CitationCard({ source: s }) {
+  const actions = useSourceActions();
+  const busy = actions.pending === `citations:${s.id}`;
+  return (
+    <Card>
+      <CardHeader title="Citations" icon={Quote} />
+      <div className="card-pad">
+        <Switch checked={!s.hideCitations} disabled={busy} onChange={show => actions.setCitationsHidden(s, !show)}
+          label="Show source to users"
+          description="When off, the AI still uses this content to answer, but users don't see it as a cited source (no source chip, link or excerpt)." />
+      </div>
+    </Card>
   );
 }
 

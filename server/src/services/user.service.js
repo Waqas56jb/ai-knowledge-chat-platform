@@ -19,7 +19,8 @@ const USER_SELECT = `
          p.timezone, p.language, p.created_at, p.updated_at, p.last_active_at,
          (select count(*)::int from ${T.conversations} c where c.user_id = p.id) as conversation_count,
          (select count(*)::int from ${T.messages} m join ${T.conversations} c on c.id = m.conversation_id where c.user_id = p.id and m.role = 'user') as questions_asked,
-         i.business_name, i.business_type, i.user_role, i.city, i.state, i.country, i.business_stage, i.products, i.client_types, i.generated_at as profile_generated_at
+         i.business_name, i.business_type, i.user_role, i.city, i.state, i.country, i.business_stage, i.products, i.client_types,
+         i.monthly_revenue, i.meta_ad_spend, i.google_ad_spend, i.generated_at as profile_generated_at
   from ${T.profiles} p
   left join ${T.insights} i on i.user_id = p.id`;
 
@@ -32,7 +33,9 @@ export const userOut = u => u && ({
   business: {
     name: u.business_name || null, type: u.business_type || null, role: u.user_role || null,
     city: u.city || null, state: u.state || null, country: u.country || null, stage: u.business_stage || null,
-    products: u.products || [], clientTypes: u.client_types || [], updatedAt: u.profile_generated_at || null
+    products: u.products || [], clientTypes: u.client_types || [],
+    revenue: u.monthly_revenue || null, metaAdSpend: u.meta_ad_spend || null, googleAdSpend: u.google_ad_spend || null,
+    updatedAt: u.profile_generated_at || null
   }
 });
 

@@ -53,6 +53,13 @@ describe('migration guard (shared database protection)', () => {
     'drop table public.chat_messages',
     'create table if not exists public.other_table (id int)',
     'alter table public.admin_settings enable row level security',
+    'alter table public.chat_messages add column if not exists x text',
+    'alter table public.ai_knowledge_chat_x drop column y',
+    'alter table public.ai_knowledge_chat_x add column if not exists a text, drop column b',
+    'alter table public.ai_knowledge_chat_x alter column y type int',
+    'alter table public.ai_knowledge_chat_x rename column y to z',
+    'alter table public.ai_knowledge_chat_x add column if not exists a text, rename column b to c',
+    'alter table public.ai_knowledge_chat_x add column if not exists a text, alter column z type int',
     'insert into public.nexpept_agents values (1)',
     'grant all on table public.chat_leads to anon',
     'truncate public.ai_knowledge_chat_profiles',
@@ -67,6 +74,7 @@ describe('migration guard (shared database protection)', () => {
     expect(() => guardStatement('create table if not exists public.ai_knowledge_chat_x (id int)')).not.toThrow();
     expect(() => guardStatement('create extension if not exists vector with schema extensions')).not.toThrow();
     expect(() => guardStatement('create index if not exists ai_knowledge_chat_i on public.ai_knowledge_chat_x (id)')).not.toThrow();
+    expect(() => guardStatement('alter table public.ai_knowledge_chat_x add column if not exists y text check (char_length(y) <= 120)')).not.toThrow();
   });
 
   it('splits statements without breaking function bodies', () => {

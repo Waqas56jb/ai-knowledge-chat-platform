@@ -51,10 +51,11 @@ const profileList = z.array(z.string().trim().min(1).max(80)).max(12).optional()
 export const businessProfileBody = z.object({
   businessName: profileText(200), businessType: profileText(120), userRole: profileText(120), city: profileText(120), state: profileText(120), country: profileText(120),
   businessStage: z.enum(['starting', 'growing', 'established']).nullable().optional(), products: profileList, clientTypes: profileList,
-  monthlyVolume: profileText(120), teamSize: profileText(120), summary: profileText(2000)
+  monthlyVolume: profileText(120), monthlyRevenue: profileText(120), metaAdSpend: profileText(120), googleAdSpend: profileText(120),
+  teamSize: profileText(120), summary: profileText(2000)
 }).strict().refine(v => Object.keys(v).length > 0, { message: 'Provide at least one field.' });
 export const releaseProfileFieldsBody = z.object({
-  fields: z.array(z.enum(['businessName', 'businessType', 'userRole', 'city', 'state', 'country', 'businessStage', 'products', 'clientTypes', 'monthlyVolume', 'teamSize', 'summary'])).min(1)
+  fields: z.array(z.enum(['businessName', 'businessType', 'userRole', 'city', 'state', 'country', 'businessStage', 'products', 'clientTypes', 'monthlyVolume', 'monthlyRevenue', 'metaAdSpend', 'googleAdSpend', 'teamSize', 'summary'])).min(1)
 }).strict();
 
 /* invitations */
@@ -76,11 +77,11 @@ export const adminSourceQuery = paginationSchema.extend({
 });
 export const youtubeSourceBody = z.object({
   url: z.string().trim().url().max(500), title: optionalText(300), description: optionalText(2000), tags, transcript: z.string().max(2000000).optional(),
-  maxVideos: z.coerce.number().int().min(1).max(500).optional(), ...visibilityFields
+  maxVideos: z.coerce.number().int().min(1).max(500).optional(), hideCitations: z.boolean().optional(), ...visibilityFields
 }).strict();
 export const textSourceBody = z.object({
   title: z.string().trim().min(1).max(300), description: optionalText(2000), text: z.string().min(1).max(2000000),
-  sourceType: z.enum(['business_knowledge', 'txt', 'markdown', 'client_conversation']).default('business_knowledge'),
+  sourceType: z.enum(['business_knowledge', 'txt', 'markdown', 'client_conversation']).default('business_knowledge'), hideCitations: z.boolean().optional(),
   category: optionalText(60), tags, ...visibilityFields
 }).strict();
 /** Multipart list fields arrive as JSON arrays or comma-separated strings; invalid JSON is left as-is so validation rejects it (422, not 500). */
@@ -97,12 +98,14 @@ export const documentFields = z.object({
   visibility: z.enum(VISIBILITIES).optional(),
   allowedUserIds: z.preprocess(listField, z.array(uuid).max(1000).optional()),
   // the file is a client conversation log (chat export, call notes, emails): anonymise + restructure it
-  asConversation: z.enum(['true', 'false']).optional(), category: optionalText(60)
+  asConversation: z.enum(['true', 'false']).optional(), category: optionalText(60), hideCitations: z.enum(['true', 'false']).optional()
 }).strict();
 export const updateSourceBody = z.object({
   title: z.string().trim().min(1).max(300).optional(), description: optionalText(2000), tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
-  notes: optionalText(4000), ...visibilityFields
+  notes: optionalText(4000), hideCitations: z.boolean().optional(), ...visibilityFields
 }).strict();
+/* hide/show citations for many sources (content is still used for answers) */
+export const bulkSourcesBody = z.object({ ids: z.array(uuid).min(1).max(500), action: z.enum(['hide_citations', 'show_citations']) }).strict();
 export const chunkQuery = paginationSchema.extend({ pageSize: z.coerce.number().int().min(1).max(100).default(20) });
 
 /* jobs */

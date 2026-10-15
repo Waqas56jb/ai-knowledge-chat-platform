@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { useConfirm } from '../common/ConfirmDialog';
-import { startProcessing, retrySource, enableSource, disableSource, deleteSource, getSourceDownload } from '../../services/knowledgeService';
+import { startProcessing, retrySource, enableSource, disableSource, deleteSource, getSourceDownload, setSourceCitationsHidden } from '../../services/knowledgeService';
 import { isActiveJob } from '../../services/processingService';
 
 export { isActiveJob };
@@ -92,6 +92,12 @@ export function useSourceActions({ onDeleted } = {}) {
     return r;
   }, [confirm, run, onDeleted]);
 
+  /** Hide or show the source as a citation to users (the AI keeps using it either way). */
+  const setCitationsHidden = useCallback((s, hidden) => run(`citations:${s.id}`, () => setSourceCitationsHidden(s.id, hidden),
+    hidden
+      ? { title: 'Source hidden from users.', description: `"${s.title}" is still used to answer, but is no longer shown as a cited source.` }
+      : { title: 'Source shown to users.', description: `Answers that use "${s.title}" now cite it.` }), [run]);
+
   /** Opens a short-lived signed URL for the original document. */
   const download = useCallback(async s => {
     setPending(`download:${s.id}`);
@@ -106,8 +112,11 @@ export function useSourceActions({ onDeleted } = {}) {
     } finally { setPending(null); }
   }, []);
 
-  return { start, retry, enable, disable, remove, download, pending };
+  return { start, retry, enable, disable, remove, download, setCitationsHidden, pending };
 }
+
+/** Default for "Show source to users" when a source is added: only YouTube videos are cited to users. */
+export const defaultShowCitations = type => type === 'youtube';
 
 /** "Restructured into 4 lessons" for a client-conversation source (null until processed). */
 export function restructuredLabel(r) {

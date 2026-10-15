@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateAnswer, supportRatio, createAnswerStream } from '../../src/services/chat.service.js';
-import { retrievalQuery, smallTalk } from '../../src/services/chat.service.js';
+import { retrievalQuery, smallTalk, hideHiddenCitations } from '../../src/services/chat.service.js';
 import { checkScope, fenceEvidence } from '../../src/services/scope.service.js';
 import { fuseResults } from '../../src/services/reranking.service.js';
 
@@ -154,5 +154,22 @@ describe('follow-up grounding', () => {
   it('a restatement of an earlier grounded answer in the same conversation is accepted', () => {
     expect(validateAnswer(restated, ev).outcome).toBe('insufficient_evidence');
     expect(validateAnswer(restated, ev, { priorAnswers: [prior] }).outcome).toBe('answered');
+  });
+});
+
+describe('hidden source citations', () => {
+  const ev = [
+    { source_id: 'yt', metadata: { videoId: 'abcdefghijk' } },
+    { source_id: 'doc', metadata: { hideCitations: true } }
+  ];
+  const cites = [{ n: 1, sourceId: 'doc' }, { n: 2, sourceId: 'yt' }];
+  it('removes hidden sources and renumbers the rest', () => {
+    const r = hideHiddenCitations('Price boxes fairly [1]. Follow up fast [2]. Both matter [1][2].', cites, ev);
+    expect(r.citations).toEqual([{ n: 1, sourceId: 'yt' }]);
+    expect(r.answer).toBe('Price boxes fairly. Follow up fast [1]. Both matter [1].');
+  });
+  it('leaves answers alone when nothing is hidden', () => {
+    const r = hideHiddenCitations('A [1].', [{ n: 1, sourceId: 'yt' }], ev);
+    expect(r).toEqual({ answer: 'A [1].', citations: [{ n: 1, sourceId: 'yt' }] });
   });
 });

@@ -24,6 +24,8 @@ export const mapSource = s => s && ({
   error: s.errorMessage || null,
   notes: s.notes || '',
   youtube: s.youtube || (s.type === 'youtube' ? { videoId: null, thumbnail: null } : null),
+  /** true = still used for answers, but never shown to users as a cited source (no chip, link or excerpt). */
+  hideCitations: !!s.hideCitations,
   activeJob: s.activeJob || null
 });
 
@@ -76,9 +78,10 @@ const visibilityFields = p => {
 
 /**
  * Create a source. payload (from the add wizard):
- *   { kind: 'youtube', url, transcript?, maxVideos? (channels), title?, description?, tags, visibility, allowedUserIds }
- *   { kind: 'document', file: File, title?, description?, tags, visibility, allowedUserIds, asConversation?, category? }
- *   { kind: 'text', sourceType, text, title, description?, category?, tags, visibility, allowedUserIds }
+ *   { kind: 'youtube', url, transcript?, maxVideos? (channels), title?, description?, tags, visibility, allowedUserIds, hideCitations? }
+ *   { kind: 'document', file: File, title?, description?, tags, visibility, allowedUserIds, asConversation?, category?, hideCitations? }
+ *   { kind: 'text', sourceType, text, title, description?, category?, tags, visibility, allowedUserIds, hideCitations? }
+ * `hideCitations` (optional boolean): the source still answers questions but is never shown to users as a citation.
  * → { source, jobId }. A 409 duplicate error carries details.existingSourceId.
  */
 export async function createKnowledgeSource(payload) {
@@ -86,9 +89,10 @@ export async function createKnowledgeSource(payload) {
   if (payload.title && payload.title.trim()) meta.title = payload.title.trim();
   if (payload.description && payload.description.trim()) meta.description = payload.description.trim();
   if (payload.tags && payload.tags.length) meta.tags = payload.tags;
+  const hide = typeof payload.hideCitations === 'boolean' ? { hideCitations: payload.hideCitations } : {};
 
   if (payload.kind === 'youtube') {
-    const body = { url: payload.url.trim(), ...meta, ...visibilityFields(payload) };
+    const body = { url: payload.url.trim(), ...meta, ...visibilityFields(payload), ...hide };
     if (payload.transcript && payload.transcript.trim()) body.transcript = payload.transcript.trim();
     if (payload.maxVideos) body.maxVideos = payload.maxVideos;
     const r = await apiPost('/admin/knowledge/youtube', body);
@@ -101,6 +105,7 @@ export async function createKnowledgeSource(payload) {
     const vis = visibilityFields(payload);
     form.append('visibility', vis.visibility);
     if (vis.allowedUserIds) form.append('allowedUserIds', JSON.stringify(vis.allowedUserIds));
+    if ('hideCitations' in hide) form.append('hideCitations', hide.hideCitations ? 'true' : 'false');
     if (payload.asConversation) {
       // a client conversation log (e.g. a WhatsApp export): anonymised and restructured by the server
       form.append('asConversation', 'true');
@@ -109,7 +114,7 @@ export async function createKnowledgeSource(payload) {
     const { data } = await request('/admin/knowledge/documents', { method: 'POST', form });
     return { ...data, source: mapSource(data.source) };
   }
-  const body = { title: payload.title.trim(), text: payload.text, sourceType: payload.sourceType || 'business_knowledge', ...meta, ...visibilityFields(payload) };
+  const body = { title: payload.title.trim(), text: payload.text, sourceType: payload.sourceType || 'business_knowledge', ...meta, ...visibilityFields(payload), ...hide };
   if (payload.category) body.category = payload.category;
   const r = await apiPost('/admin/knowledge/text', body);
   return { ...r, source: mapSource(r.source) };
@@ -137,7 +142,7 @@ export async function uploadConversationFiles(files, base, { titleFor, onUpdate 
   return results;
 }
 
-/** changes: { title, description, tags, notes, visibility, allowedUserIds } */
+/** changes: { title, description, tags, notes, visibility, allowedUserIds, hideCitations } */
 export async function updateSource(id, changes) {
   const body = { ...changes };
   if ('visibility' in body) {
@@ -145,6 +150,21 @@ export async function updateSource(id, changes) {
     if (body.visibility !== 'restricted') body.allowedUserIds = [];
   }
   return mapSource(await apiPatch(`/admin/knowledge/${encodeURIComponent(id)}`, body));
+}
+
+/** Show or hide one source's citations to users (the AI keeps using it). */
+export const setSourceCitationsHidden = (id, hidden) => updateSource(id, { hideCitations: !!hidden });
+
+/** Max ids per POST /admin/knowledge/bulk request. */
+export const BULK_MAX = 500;
+/** Bulk hide / show citations. action: 'hide_citations' | 'show_citations' → { updated } */
+export async function bulkSetCitations(ids, action) {
+  let updated = 0;
+  for (let i = 0; i < ids.length; i += BULK_MAX) {
+    const r = await apiPost('/admin/knowledge/bulk', { ids: ids.slice(i, i + BULK_MAX), action });
+    updated += Number(r && r.updated) || 0;
+  }
+  return { updated };
 }
 
 /** Index / re-index. */

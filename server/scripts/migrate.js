@@ -77,6 +77,12 @@ export function guardStatement(stmt) {
   if ((m = body.match(/^create (?:or replace )?trigger ([a-z0-9_"]+) .*? on ([a-z0-9_."]+)/))) { if (!prefixed(m[1]) || !prefixed(m[2])) fail('trigger name/table'); return; }
   if ((m = body.match(/^create policy ([a-z0-9_"]+) on ([a-z0-9_."]+)/))) { if (!prefixed(m[1]) || !prefixed(m[2])) fail('policy name/table'); return; }
   if ((m = body.match(/^alter table ([a-z0-9_."]+) (enable|force) row level security$/))) { if (!prefixed(m[1])) fail('alter target'); return; }
+  // additive column changes on OUR tables only (never drop/rename/alter type)
+  if ((m = body.match(/^alter table ([a-z0-9_."]+) (add column if not exists [a-z0-9_"]+ [^;]+)$/))) {
+    if (!prefixed(m[1])) fail('alter target');
+    if (/,\s*(drop|alter|rename)\b|\b(drop|rename|alter\s+column|set\s+data\s+type)\b|\btype\s/.test(m[2])) fail('only ADD COLUMN IF NOT EXISTS is allowed');
+    return;
+  }
   if ((m = body.match(/^(?:revoke|grant) .*? on (table|function) (.+?) (?:from|to) .+$/))) {
     const names = m[1] === 'table' ? m[2].split(',') : [m[2].replace(/\(.*$/, '')];
     if (!names.every(n => prefixed(n.trim()))) fail('grant/revoke target');
