@@ -8,6 +8,12 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import { getSettings } from './settings.service.js';
+
+/** The product name shown in emails: the platform display name from admin settings (env value as fallback). */
+export async function mailBrand() {
+  try { return (await getSettings()).platform?.displayName || env.MAIL_FROM_NAME; } catch { return env.MAIL_FROM_NAME; }
+}
 
 let transporter = null;
 function getTransport() {
@@ -23,7 +29,7 @@ function getTransport() {
 }
 
 export const mailEnabled = () => env.MAIL_ENABLED && !!env.SMTP_USER && !!env.SMTP_PASS;
-const fromAddress = () => ({ name: env.MAIL_FROM_NAME, address: env.MAIL_FROM_EMAIL || env.SMTP_USER });
+const fromAddress = async () => ({ name: await mailBrand(), address: env.MAIL_FROM_EMAIL || env.SMTP_USER });
 const skipDomains = () => env.MAIL_SKIP_DOMAINS.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 const domainOf = to => String(to).split('@')[1]?.toLowerCase() || '';
 const isSkipped = to => { const d = domainOf(to); return skipDomains().some(s => d === s || d.endsWith(`.${s}`)); };
@@ -34,7 +40,7 @@ export async function sendMail({ to, subject, html, text, category = 'general', 
   if (!to || isSkipped(to)) return { sent: false, skipped: 'test_recipient' };
   try {
     const info = await getTransport().sendMail({
-      from: fromAddress(), to, subject, html, text, replyTo: replyTo || env.MAIL_REPLY_TO || undefined,
+      from: await fromAddress(), to, subject, html, text, replyTo: replyTo || env.MAIL_REPLY_TO || undefined,
       headers: { 'X-DTSAI-Category': category }
     });
     logger.info({ category, domain: domainOf(to), accepted: info.accepted?.length || 0 }, 'email sent');
@@ -100,7 +106,7 @@ export function invitationEmail({ inviterName, role, url, expiresAt, message, wo
   const expiry = `This invitation is personal to you and expires on ${fmtDate(expiresAt)}.`;
   return {
     subject,
-    html: layout({ preheader: `${who} to join ${workspace}.`, heading: subject, blocks: [
+    html: layout({ brand: workspace, preheader: `${who} to join ${workspace}.`, heading: subject, blocks: [
       { p: intro }, ...(message ? [{ quote: message }] : []), { button: { url, label: 'Accept invitation' } }, { note: expiry }, { link: url }
     ] }),
     text: textOf(subject, [intro, message ? `Message: ${message}` : '', `Accept the invitation: ${url}`, expiry])
@@ -113,7 +119,7 @@ export function passwordResetEmail({ url, name, workspace = env.MAIL_FROM_NAME, 
   const note = `The link works once and expires in about ${expiresInMinutes} minutes. If you didn't ask for a reset, ignore this email: your password stays the same.`;
   return {
     subject,
-    html: layout({ preheader: 'Use this link to choose a new password.', heading: subject, blocks: [{ p: intro }, { button: { url, label: 'Reset password' } }, { note }, { link: url }] }),
+    html: layout({ brand: workspace, preheader: 'Use this link to choose a new password.', heading: subject, blocks: [{ p: intro }, { button: { url, label: 'Reset password' } }, { note }, { link: url }] }),
     text: textOf(subject, [intro, `Reset your password: ${url}`, note])
   };
 }
@@ -123,7 +129,7 @@ export function welcomeEmail({ name, url, workspace = env.MAIL_FROM_NAME }) {
   const intro = `${name ? `Hi ${name}, y` : 'Y'}our account is ready. Ask a question in plain language and every answer comes with links to the exact video moment or document page it came from.`;
   return {
     subject,
-    html: layout({ preheader: 'Your account is ready.', heading: subject, blocks: [{ p: intro }, { button: { url, label: `Open ${workspace}` } }] }),
+    html: layout({ brand: workspace, preheader: 'Your account is ready.', heading: subject, blocks: [{ p: intro }, { button: { url, label: `Open ${workspace}` } }] }),
     text: textOf(subject, [intro, url])
   };
 }

@@ -15,7 +15,7 @@ import { recordAudit } from './audit.service.js';
 import { notifyAdmins } from './notification.service.js';
 import { loadProfile, forgetToken, verifyAccessToken } from '../middleware/authenticate.js';
 import { logger } from '../utils/logger.js';
-import { mailEnabled, sendMail, passwordResetEmail, welcomeEmail } from './mail.service.js';
+import { mailEnabled, sendMail, passwordResetEmail, welcomeEmail, mailBrand } from './mail.service.js';
 
 export const publicProfile = p => p && ({
   id: p.id, email: p.email, fullName: p.full_name, role: p.role, status: p.status, avatarUrl: p.avatar_url,
@@ -89,7 +89,7 @@ async function sendResetEmail(email, profile, redirectTo) {
   const hashed = data?.properties?.hashed_token;
   if (error || !hashed) { logger.warn({ code: error?.code, status: error?.status }, 'recovery link could not be generated'); return; }
   const url = `${redirectTo}?token_hash=${encodeURIComponent(hashed)}&type=recovery`;
-  await sendMail({ to: email, ...passwordResetEmail({ url, name: profile.full_name }), category: 'password_reset' });
+  await sendMail({ to: email, ...passwordResetEmail({ url, name: profile.full_name, workspace: await mailBrand() }), category: 'password_reset' });
 }
 
 /**
@@ -173,7 +173,7 @@ export async function acceptInvitation({ token, email, fullName, password }, req
       return { userId: data.user.id, email: inv.email };
     });
     createdAuthUserId = null; // committed
-    sendMail({ to: result.email, ...welcomeEmail({ name: fullName, url: `${env.CLIENT_URL}/app` }), category: 'welcome' }).catch(() => {});
+    mailBrand().then(workspace => sendMail({ to: result.email, ...welcomeEmail({ name: fullName, url: `${env.CLIENT_URL}/app`, workspace }), category: 'welcome' })).catch(() => {});
     return await login(result.email, password, req);
   } catch (e) {
     if (createdAuthUserId) {

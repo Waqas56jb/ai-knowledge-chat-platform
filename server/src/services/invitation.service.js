@@ -11,7 +11,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { newToken } from '../utils/sanitize.js';
 import { recordAudit } from './audit.service.js';
 import { getSettings } from './settings.service.js';
-import { sendMail, invitationEmail } from './mail.service.js';
+import { sendMail, invitationEmail, mailBrand } from './mail.service.js';
 
 export const inviteUrl = raw => `${env.CLIENT_URL}/register?invite=${encodeURIComponent(raw)}`;
 
@@ -27,7 +27,7 @@ export const invitationOut = (i, raw, delivery) => i && ({
 
 /** Email the invitation link. Never throws: on failure the admin still gets the link to share manually. */
 async function deliverInvitation(row, raw, inviterName) {
-  const mail = invitationEmail({ inviterName, role: row.role, url: inviteUrl(raw), expiresAt: row.expires_at, message: row.message });
+  const mail = invitationEmail({ inviterName, role: row.role, url: inviteUrl(raw), expiresAt: row.expires_at, message: row.message, workspace: await mailBrand() });
   const r = await sendMail({ to: row.email, ...mail, category: 'invitation' });
   if (r.sent) await query(`update ${T.invitations} set last_sent_at = now() where id = $1`, [row.id]).catch(() => {});
   return r;

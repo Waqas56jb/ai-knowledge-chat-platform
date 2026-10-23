@@ -52,11 +52,11 @@ function countOptions(list, current, allLabel) {
 
 const joinParts = parts => parts.filter(Boolean).join(', ');
 
-/** Revenue and ad spend from the hidden business profile: free text like "$40k/month" or "$150/day". Wide screens only. */
+/** Revenue and ad spend from the hidden business profile: free text like "$40k/month" or "$150/day". Always shown (the table scrolls sideways on narrow screens). */
 const moneyCell = v => (v ? <span className="block truncate" title={v}>{v}</span> : <span className="text-faint">—</span>);
 const MONEY_COLUMNS = [['revenue', 'Revenue'], ['metaAdSpend', 'Meta spend'], ['googleAdSpend', 'Google spend']].map(([k, header]) => ({
-  key: `business.${k}`, header, mobile: 'hidden',
-  className: 'hidden max-w-[140px] whitespace-nowrap text-muted 2xl:table-cell', headerClassName: 'hidden whitespace-nowrap 2xl:table-cell',
+  key: `business.${k}`, header,
+  className: 'max-w-[140px] whitespace-nowrap text-muted', headerClassName: 'whitespace-nowrap',
   render: u => moneyCell(u.business[k])
 }));
 
@@ -111,7 +111,7 @@ export default function UsersPage() {
     },
     { key: 'email', header: 'Email', sortable: true, mobile: 'hidden', className: 'hidden max-w-[240px] truncate text-muted lg:table-cell', headerClassName: 'hidden lg:table-cell' },
     {
-      key: 'businessName', header: 'Business', sortable: true, className: 'hidden max-w-[220px] lg:table-cell', headerClassName: 'hidden lg:table-cell',
+      key: 'businessName', header: 'Business', sortable: true, className: 'max-w-[220px]', headerClassName: '',
       render: u => (u.business.name || u.business.type
         ? (
           <span className="block min-w-0">
@@ -122,7 +122,7 @@ export default function UsersPage() {
         : <span className="text-faint">—</span>)
     },
     {
-      key: 'country', header: 'Location', sortable: true, className: 'hidden max-w-[200px] text-muted xl:table-cell', headerClassName: 'hidden xl:table-cell',
+      key: 'country', header: 'Location', sortable: true, className: 'max-w-[200px] text-muted', headerClassName: '',
       render: u => { const loc = joinParts([u.business.city, u.business.state, u.business.country]); return loc ? <span className="block truncate" title={loc}>{loc}</span> : <span className="text-faint">—</span>; }
     },
     ...MONEY_COLUMNS,
