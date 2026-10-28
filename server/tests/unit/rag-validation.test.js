@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateAnswer, supportRatio, createAnswerStream } from '../../src/services/chat.service.js';
-import { retrievalQuery, smallTalk, hideHiddenCitations } from '../../src/services/chat.service.js';
+import { retrievalQuery, smallTalk, hideHiddenCitations, PURCHASE_DISCLAIMER } from '../../src/services/chat.service.js';
 import { checkScope, fenceEvidence } from '../../src/services/scope.service.js';
 import { fuseResults } from '../../src/services/reranking.service.js';
 
@@ -171,5 +171,30 @@ describe('hidden source citations', () => {
   it('leaves answers alone when nothing is hidden', () => {
     const r = hideHiddenCitations('A [1].', [{ n: 1, sourceId: 'yt' }], ev);
     expect(r).toEqual({ answer: 'A [1].', citations: [{ n: 1, sourceId: 'yt' }] });
+  });
+});
+
+describe('clarifying questions and purchase advice', () => {
+  const ev = [{ chunk_id: 'c1', source_id: 's1', source_title: 'Ads', source_type: 'business_knowledge', content: 'Run separate ad campaigns for each city and test the budget per campaign before scaling.' }];
+  it('a clarify outcome becomes a short intro plus 1-3 clean questions, without citations', () => {
+    const v = validateAnswer(JSON.stringify({ outcome: 'clarify', answer: 'Happy to help, a few details first [1].', questions: ['1. How many campaigns are you running?', 'What is your daily budget?', 'What is your daily budget?', 'x', 'Which cities?', 'How long running?'] }), ev);
+    expect(v.outcome).toBe('clarify');
+    expect(v.questions).toEqual(['How many campaigns are you running?', 'What is your daily budget?', 'Which cities?']);
+    expect(v.answer).toBe('Happy to help, a few details first.\n- How many campaigns are you running?\n- What is your daily budget?\n- Which cities?');
+    expect(v.citations).toEqual([]);
+  });
+  it('a clarify outcome without usable questions is not trusted', () => {
+    expect(validateAnswer(JSON.stringify({ outcome: 'clarify', answer: 'Tell me more', questions: [] }), ev)).toMatchObject({ outcome: 'insufficient_evidence', invalid: true });
+  });
+  it('purchase advice is flagged only when the model says so', () => {
+    const base = { outcome: 'answered', answer: 'Run separate ad campaigns for each city and test the budget [1].', citations: [1] };
+    expect(validateAnswer(JSON.stringify({ ...base, purchaseAdvice: true }), ev).purchaseAdvice).toBe(true);
+    expect(validateAnswer(JSON.stringify({ ...base, purchaseAdvice: 'yes' }), ev).purchaseAdvice).toBe(false);
+    expect(validateAnswer(JSON.stringify(base), ev).purchaseAdvice).toBe(false);
+    expect(PURCHASE_DISCLAIMER).toMatch(/lawyer/);
+  });
+  it('a reply to clarifying questions is searched together with the original question', () => {
+    const history = [{ role: 'user', content: 'How should I scale my Facebook ads?' }, { role: 'assistant', content: 'A few details first', usage: { clarify: true } }];
+    expect(retrievalQuery('I run 3 campaigns at about 50 dollars a day in Texas and Florida right now', history)).toMatch(/^How should I scale my Facebook ads\?\nI run 3 campaigns/);
   });
 });

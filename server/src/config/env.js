@@ -43,6 +43,8 @@ const schema = z.object({
   RETRIEVAL_MIN_SIMILARITY: z.coerce.number().min(0).max(1).default(0.3),
   // AI query rewriting + relevance reranking during retrieval (falls back to plain hybrid search on any failure)
   RETRIEVAL_ASSIST: bool('true'),
+  // ask clarifying questions before personalised recommendations when key details are unknown
+  CLARIFY_QUESTIONS: bool('true'),
   CHANNEL_MAX_VIDEOS: int(50, 1, 500),
 
   CHAT_RATE_LIMIT_WINDOW_MS: int(60000, 1000),

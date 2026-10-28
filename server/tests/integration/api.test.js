@@ -20,6 +20,7 @@ const { claimNextJob } = await import('../../src/services/processing.service.js'
 const { runJob } = await import('../../src/jobs/processSource.job.js');
 const { supabaseAdmin } = await import('../../src/config/supabase.js');
 const { refreshInsight } = await import('../../src/services/insight.service.js');
+const { PURCHASE_DISCLAIMER } = await import('../../src/services/chat.service.js');
 
 let admin, member, other, reader, workspaceSrc, privateSrc;
 const auth = u => ({ Authorization: `Bearer ${u.token}` });
@@ -268,6 +269,42 @@ describe('client conversations are anonymised and restructured before indexing',
     await pool.query("insert into public.ai_knowledge_chat_jobs (source_id, job_type, status, attempts, max_attempts, locked_by, locked_at) values ($1, 'text_normalization', 'processing', 1, 3, 'vitest', now())", [r.body.data.source.id]);
     await runJob(await one("select * from public.ai_knowledge_chat_jobs where source_id = $1 and status = 'processing'", [r.body.data.source.id]));
     expect(ai.calls).toHaveLength(0);
+    ai.chat = null;
+  });
+});
+
+describe('clarifying questions and the purchase disclaimer', () => {
+  it('asks once, then answers using the details; the disclaimer is added to buying advice', async () => {
+    ai.calls = [];
+    ai.chat = JSON.stringify({ outcome: 'clarify', answer: 'Happy to tailor this.', questions: ['How many campaigns are you running?', 'What is your daily budget?'], citations: [], followups: [] });
+    const q1 = await api().post(`${P}/chat`).set(auth(member)).send({ message: `What discount should I offer to scale my business ${RUN}?` });
+    expect(q1.status).toBe(200);
+    expect(q1.body.data.outcome).toBe('answered');
+    expect(q1.body.data.citations).toEqual([]);
+    expect(q1.body.data.answer).toBe('Happy to tailor this.\n- How many campaigns are you running?\n- What is your daily budget?');
+    const conv = q1.body.data.conversationId;
+
+    // the reply: the model is told not to clarify again, and search uses the original question too
+    ai.calls = [];
+    ai.chat = JSON.stringify({ outcome: 'answered', answer: 'Discounts above ten percent require a longer contract or upfront payment [1].', citations: [1], purchaseAdvice: true });
+    const q2 = await api().post(`${P}/chat`).set(auth(member)).send({ message: 'I run 2 campaigns at 40 dollars a day', conversationId: conv });
+    expect(q2.body.data.outcome).toBe('answered');
+    const sent = ai.calls[0];
+    expect(sent.some(m => m.role === 'system' && /Do not ask more questions/.test(m.content))).toBe(true);
+    expect(q2.body.data.answer).toMatch(/longer contract or upfront payment/);
+    expect(q2.body.data.answer.endsWith(PURCHASE_DISCLAIMER)).toBe(true);
+
+    // a second clarify right after a clarification is not allowed: it falls back instead of looping
+    ai.chat = JSON.stringify({ outcome: 'clarify', answer: 'More?', questions: ['Which city?'] });
+    const c1 = await api().post(`${P}/chat`).set(auth(member)).send({ message: `How should I set up my ads ${RUN}?` });
+    expect(c1.body.data.answer).toMatch(/Which city\?/);
+    const c2 = await api().post(`${P}/chat`).set(auth(member)).send({ message: 'Austin', conversationId: c1.body.data.conversationId });
+    expect(c2.body.data.answer).not.toMatch(/Which city\?/);
+
+    // non-buying advice gets no disclaimer
+    ai.chat = JSON.stringify({ outcome: 'answered', answer: 'Discounts above ten percent require a longer contract or upfront payment [1].', citations: [1], purchaseAdvice: false });
+    const q3 = await api().post(`${P}/chat`).set(auth(member)).send({ message: `What is the discount policy ${RUN}?` });
+    expect(q3.body.data.answer).not.toMatch(/lawyer/);
     ai.chat = null;
   });
 });

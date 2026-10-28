@@ -12,7 +12,9 @@ import { TYPE_GROUP } from './source.service.js';
 export const messageOut = m => m && ({
   id: m.id, role: m.role, content: m.content, citations: m.citations || [], outcome: m.outcome, replyTo: m.reply_to,
   clientMessageId: m.client_message_id, createdAt: m.created_at, feedback: m.feedback || null,
-  followups: Array.isArray(m.usage?.followups) ? m.usage.followups : []
+  followups: Array.isArray(m.usage?.followups) ? m.usage.followups : [],
+  // the assistant asked clarifying questions before giving a recommendation
+  clarify: !!m.usage?.clarify
 });
 
 /** Dashboard numbers for the signed-in user (only their own data and sources they may access). */
