@@ -9,13 +9,28 @@ vi.mock('../../src/services/openai.service.js', () => ({
   }),
   embed: vi.fn()
 }));
-const { decideClarify, needsPurchaseDisclaimer } = await import('../../src/services/clarify.service.js');
+const { decideClarify, needsPurchaseDisclaimer, shapeQuestions, STAGE_QUESTION } = await import('../../src/services/clarify.service.js');
 beforeEach(() => { m.out = null; m.calls = []; });
 
 describe('clarify decision', () => {
   it('returns up to 3 cleaned, distinct questions when clarification is needed', async () => {
     m.out = JSON.stringify({ needs: true, questions: ['1. What is your monthly revenue?', 'What is your monthly revenue?', '- How many campaigns?', 'x', 'Where do you operate?', 'Extra?'] });
-    expect(await decideClarify('How much should I spend on ads?')).toEqual({ needs: true, questions: ['What is your monthly revenue?', 'How many campaigns?', 'Where do you operate?'] });
+    // the client's stage question always leads (and replaces the model's revenue variant); max 3
+    expect(await decideClarify('How much should I spend on ads?')).toEqual({ needs: true, questions: [STAGE_QUESTION, 'How many campaigns?', 'Where do you operate?'] });
+  });
+  it('never asks about the target audience (it is always diabetics)', async () => {
+    m.out = JSON.stringify({ needs: true, questions: ['Who is your target audience?', 'What is your target market?', 'Who are your ideal customers?', 'How many campaigns are you running?'] });
+    expect((await decideClarify('How should I grow?')).questions).toEqual([STAGE_QUESTION, 'How many campaigns are you running?']);
+  });
+  it('does not repeat the stage question when stage and revenue are already known', async () => {
+    m.out = JSON.stringify({ needs: true, questions: ['How many campaigns are you running?'] });
+    expect((await decideClarify('How should I grow?', { profile: 'Stage: growing\nRevenue: $60k/month' })).questions).toEqual(['How many campaigns are you running?']);
+    expect(shapeQuestions(['Who is your target audience?'], 'Stage: growing\nRevenue: $60k/month')).toEqual([]);
+  });
+  it('does not add the stage question when the member already stated revenue, stage or job', () => {
+    expect(shapeQuestions(['How many campaigns?'], null, 'I make $20k a month and have a full-time job')).toEqual(['How many campaigns?']);
+    expect(shapeQuestions(['How many campaigns?'], null, 'I just started 6 months ago')).toEqual(['How many campaigns?']);
+    expect(shapeQuestions(['How many campaigns?'], null, 'How should I grow?')).toEqual([STAGE_QUESTION, 'How many campaigns?']);
   });
   it('passes the conversation and the hidden profile as fenced data', async () => {
     m.out = JSON.stringify({ needs: false, questions: [] });
