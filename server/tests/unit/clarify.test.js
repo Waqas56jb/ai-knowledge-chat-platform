@@ -9,7 +9,7 @@ vi.mock('../../src/services/openai.service.js', () => ({
   }),
   embed: vi.fn()
 }));
-const { decideClarify, needsPurchaseDisclaimer, shapeQuestions, STAGE_QUESTION } = await import('../../src/services/clarify.service.js');
+const { decideClarify, needsPurchaseDisclaimer, needsAdsNote, shapeQuestions, STAGE_QUESTION } = await import('../../src/services/clarify.service.js');
 beforeEach(() => { m.out = null; m.calls = []; });
 
 describe('clarify decision', () => {
@@ -58,5 +58,19 @@ describe('purchase disclaimer detection', () => {
   it('does not apply to non-buying advice', () => {
     expect(needsPurchaseDisclaimer('Why do people fail to get funding?', 'They lack an LLC.', false)).toBe(false);
     expect(needsPurchaseDisclaimer('How do I hire a VA?', 'Write clear tasks.', false)).toBe(false);
+  });
+});
+
+describe('Scaleyourdts.com note for ads answers', () => {
+  it('applies to ads questions, model-flagged answers and answers mostly about ads', () => {
+    expect(needsAdsNote('How much should I spend on Facebook ads?', '', false)).toBe(true);
+    expect(needsAdsNote('How do I lower my cost per lead?', '', false)).toBe(true);
+    expect(needsAdsNote('How do I grow?', 'x', true)).toBe(true);
+    expect(needsAdsNote('How do I get more sellers?', 'Run Facebook ads with a clear offer. Test ad creatives weekly.', false)).toBe(true);
+  });
+  it('does not apply to other topics', () => {
+    expect(needsAdsNote('What is DTS?', 'DTS means diabetic test strips.', false)).toBe(false);
+    expect(needsAdsNote('How do I address this?', 'About the address on the box.', false)).toBe(false);
+    expect(needsAdsNote('Do I need an LLC?', 'Lenders want an LLC; ads were not discussed.', false)).toBe(false);
   });
 });

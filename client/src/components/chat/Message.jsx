@@ -9,10 +9,16 @@ const citeFor = (m, n) => (m.citations || []).find(c => c.n === n) || null;
 const locOf = c => (c.timestamp ? c.timestamp : c.pageNumber ? 'Page ' + c.pageNumber : '');
 
 /** Tiny markdown: paragraphs, "- " lists, **bold** and [n] citation markers mapped to m.citations by n. */
+// clickable links in answers: http(s) URLs and the Scaleyourdts.com reference (never other schemes)
+const LINK = /(https?:\/\/[^\s<>"')\]]+[^\s<>"')\].,;:!?]|\bscaleyourdts\.com\b)/i;
+const hrefFor = t => (/^https?:\/\//i.test(t) ? t : 'https://scaleyourdts.com');
+
 function Inline({ text, m, showC, onCite }) {
-  const parts = text.split(/(\*\*.+?\*\*|\s?\[\d+\])/g);
+  const parts = text.split(/(\*\*.+?\*\*|\s?\[\d+\]|https?:\/\/[^\s<>"')\]]+[^\s<>"')\].,;:!?]|\bscaleyourdts\.com\b)/gi);
   return parts.map((p, i) => {
+    if (!p) return null;
     if (/^\*\*.+\*\*$/.test(p)) return <strong key={i}>{p.slice(2, -2)}</strong>;
+    if (new RegExp(`^${LINK.source}$`, 'i').test(p)) return <a key={i} className="link" href={hrefFor(p)} target="_blank" rel="noopener noreferrer">{p}</a>;
     const c = p.match(/^\s?\[(\d+)\]$/);
     if (c) { const n = +c[1]; return showC && citeFor(m, n) ? <button key={i} className="cite" onClick={() => onCite(n)} aria-label={`Open source ${n}`}>{n}</button> : null; }
     return p;

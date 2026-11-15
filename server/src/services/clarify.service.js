@@ -79,3 +79,12 @@ const BUY_ANSWER = /\b(buy|purchase|stock|resell|order)\b[^.]{0,80}\b(strips?|pr
 export function needsPurchaseDisclaimer(question, answer, modelFlag) {
   return modelFlag === true || (BUY_QUESTION.test(question || '') && BUY_ANSWER.test(answer || ''));
 }
+
+// advertising: ads, Facebook/Meta/Google ads, ad spend/budget/campaigns/creatives, CPC/CPM, cost per lead, retargeting
+const ADS = /\b(ads|advert\w*|(facebook|fb|meta|google|instagram|tiktok|youtube|craigslist) ad|ad (spend|budget|campaigns?|sets?|creatives?|copy|account)|campaigns?|cpc|cpm|cpl|cost per (lead|click)|retarget\w*|boost(ed|ing)? posts?|paid (traffic|marketing))\b/i;
+const ADS_STRONG = /\b(ads|advert\w*|(facebook|fb|meta|google) ad|ad (spend|budget|campaigns?|creatives?)|cost per (lead|click)|retarget\w*)\b/gi;
+
+/** The Scaleyourdts.com note applies when the model flags the answer as about ads, the question is about ads, or the answer is mostly about ads. */
+export function needsAdsNote(question, answer, modelFlag) {
+  return modelFlag === true || ADS.test(question || '') || ((answer || '').match(ADS_STRONG) || []).length >= 2;
+}

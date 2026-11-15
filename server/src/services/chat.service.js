@@ -15,7 +15,7 @@ import { logger } from '../utils/logger.js';
 import { getSettings } from './settings.service.js';
 import { checkScope, fenceEvidence } from './scope.service.js';
 import { insightContext } from './insight.service.js';
-import { decideClarify, needsPurchaseDisclaimer } from './clarify.service.js';
+import { decideClarify, needsPurchaseDisclaimer, needsAdsNote } from './clarify.service.js';
 import { retrieve } from './retrieval.service.js';
 import { chatJson, chatJsonStream } from './openai.service.js';
 import { videoUrl } from './youtube.service.js';
@@ -35,7 +35,8 @@ Language: write "answer" and "followups" in the language the question is written
 If the member shared details about their situation (budget, campaigns, volume, location ...), use them to make the advice specific.
 Never ask the member who their target audience or end customers are: for diabetic supplies they are always diabetics.
 Purchases: set "purchaseAdvice" to true when your answer recommends buying, stocking or selling specific products or tells the member what to buy; otherwise false.
-Respond with a JSON object: {"outcome": "answered" | "insufficient_evidence", "answer": string, "answer_en"?: string, "citations": number[], "followups": string[], "purchaseAdvice": boolean}
+Ads: set "adsTopic" to true when your answer is about advertising (Facebook/Meta ads, Google ads, ad campaigns, ad spend or budget, ad creatives, leads from ads); otherwise false. Do not add any website link yourself.
+Respond with a JSON object: {"outcome": "answered" | "insufficient_evidence", "answer": string, "answer_en"?: string, "citations": number[], "followups": string[], "purchaseAdvice": boolean, "adsTopic": boolean}
 Example: {"outcome": "answered", "answer": "Present the middle tier first [1].\\n- Discounts above 10% need a longer contract [2].", "citations": [1, 2], "followups": ["What counts as a longer contract?"]}
 Partial-answer example (question "What are the benefits of X?", evidence only says X is needed to qualify for loans): {"outcome": "answered", "answer": "The sources describe one main benefit: X helps you qualify for loans, because lenders look for it [1]. They do not discuss other benefits.", "citations": [1], "followups": []}`;
 
@@ -121,7 +122,7 @@ export function validateAnswer(raw, evidence, { priorAnswers = [] } = {}) {
   if (supportRatio(groundingText, [...evidence.map(e => e.content), ...priorAnswers]) < MIN_SUPPORT) {
     return { outcome: 'insufficient_evidence', answer: null, citations: [], unsupported: true };
   }
-  return { outcome: 'answered', answer, citations: order.map((n, i) => toCitation(evidence[n - 1], i + 1)), followups: cleanFollowups(parsed.followups), purchaseAdvice: parsed.purchaseAdvice === true };
+  return { outcome: 'answered', answer, citations: order.map((n, i) => toCitation(evidence[n - 1], i + 1)), followups: cleanFollowups(parsed.followups), purchaseAdvice: parsed.purchaseAdvice === true, adsTopic: parsed.adsTopic === true };
 }
 
 /** 1-3 short, distinct clarifying questions. */
@@ -132,6 +133,9 @@ export function cleanQuestions(list) {
 
 /** Added by the server (not the model) to every answer that recommends what to buy or sell. */
 export const PURCHASE_DISCLAIMER = 'Disclaimer: before buying, stocking or selling any products, check with a lawyer to make sure it is legal and compliant where you operate.';
+
+/** Added by the server (not the model) to every answer about advertising (client request). The app renders it as a link. */
+export const ADS_NOTE = 'For more information on ads, visit Scaleyourdts.com.';
 
 const CITE = /\[(\d{1,3}(?:\s*,\s*\d{1,3})*)\]/g;
 const ESC = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', '"': '"', '\\': '\\', '/': '/' };
@@ -331,7 +335,12 @@ export async function sendMessage(user, payload, hooks = {}) {
   if (v.outcome !== 'answered') return save(settings.knowledge.fallbackMessage, 'insufficient_evidence', [], usage);
   const shown = hideHiddenCitations(v.answer, v.citations, [...ret.evidence, ...strong]);
   // recommendations about what to buy or sell always carry the legal disclaimer (added by the server, not the model)
-  const content = needsPurchaseDisclaimer(text, shown.answer, v.purchaseAdvice) ? `${shown.answer}\n\n${PURCHASE_DISCLAIMER}` : shown.answer;
+  // answers about ads point to Scaleyourdts.com; buying advice carries the legal disclaimer (both added by the server)
+  const content = [
+    shown.answer,
+    needsAdsNote(text, shown.answer, v.adsTopic) && ADS_NOTE,
+    needsPurchaseDisclaimer(text, shown.answer, v.purchaseAdvice) && PURCHASE_DISCLAIMER
+  ].filter(Boolean).join('\n\n');
   return save(content, 'answered', shown.citations, { ...usage, followups: v.followups || [], purchaseAdvice: !!v.purchaseAdvice });
 }
 

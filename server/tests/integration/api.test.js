@@ -20,7 +20,7 @@ const { claimNextJob } = await import('../../src/services/processing.service.js'
 const { runJob } = await import('../../src/jobs/processSource.job.js');
 const { supabaseAdmin } = await import('../../src/config/supabase.js');
 const { refreshInsight } = await import('../../src/services/insight.service.js');
-const { PURCHASE_DISCLAIMER } = await import('../../src/services/chat.service.js');
+const { PURCHASE_DISCLAIMER, ADS_NOTE } = await import('../../src/services/chat.service.js');
 
 let admin, member, other, reader, workspaceSrc, privateSrc;
 const auth = u => ({ Authorization: `Bearer ${u.token}` });
@@ -305,6 +305,12 @@ describe('clarifying questions and the purchase disclaimer', () => {
     ai.chat = JSON.stringify({ outcome: 'answered', answer: 'Discounts above ten percent require a longer contract or upfront payment [1].', citations: [1], purchaseAdvice: false });
     const q3 = await api().post(`${P}/chat`).set(auth(member)).send({ message: `What is the discount policy ${RUN}?` });
     expect(q3.body.data.answer).not.toMatch(/lawyer/);
+    expect(q3.body.data.answer).not.toMatch(/Scaleyourdts/i);
+
+    // answers about ads end with the Scaleyourdts.com note (before the disclaimer when both apply)
+    ai.chat = JSON.stringify({ outcome: 'answered', answer: 'Discounts above ten percent require a longer contract or upfront payment [1].', citations: [1], adsTopic: true, purchaseAdvice: true });
+    const q4 = await api().post(`${P}/chat`).set(auth(member)).send({ message: `What is the discount policy ${RUN}?` });
+    expect(q4.body.data.answer).toMatch(new RegExp(`\\n\\n${ADS_NOTE.replace(/\./g, '\\.')}\\n\\n${PURCHASE_DISCLAIMER.slice(0, 30)}`));
     ai.chat = null;
   });
 });
