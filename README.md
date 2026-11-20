@@ -9,6 +9,7 @@ NEXUS AI is an AI workspace for asking questions about your own videos, document
 | [`admin/`](admin/) | Admin panel (React 18 + Vite + Tailwind): users, invitations, knowledge, processing, review, analytic
 s, audit, settings | http://localhost:5188 |
 
+
 All data comes from the API, and neither frontend contains any mock or demo data. The secrets (the Supabase service-role key and the OpenAI key) live only in `server/.env`. The frontends only receive `VITE_API_BASE_URL`.
 
 ## Run locally
